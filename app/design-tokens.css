@@ -1,0 +1,58 @@
+/* Narendra Portfolio: shared visual and interaction foundations. */
+:root {
+  --color-background: #ffffff;
+  --color-surface: #f5f5f2;
+  --color-surface-raised: #eeeee9;
+  --color-border: #deded8;
+  --color-border-hover: #9c9d94;
+  --color-text: #161815;
+  --color-text-secondary: #53574f;
+  --color-text-muted: #64685f;
+  --color-accent: #191b17;
+  --color-accent-hover: #35382f;
+  --color-accent-subtle: #e9eae3;
+  --color-on-accent: #ffffff;
+  --color-highlight: #f4dc3b;
+  --color-highlight-soft: #fcf3b7;
+  --color-success: #759738;
+  --font-sans: 'Plus Jakarta Sans', Arial, Helvetica, sans-serif;
+  --text-display: clamp(2.5rem, 5.5vw, 5rem);
+  --text-heading: clamp(2rem, 3.6vw, 3.25rem);
+  --text-subheading: clamp(1.75rem, 2.8vw, 2.25rem);
+  --text-title: 1.25rem;
+  --text-body: 1rem;
+  --text-small: .875rem;
+  --text-caption: .75rem;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+  --space-30: 120px;
+  --radius-small: 16px;
+  --radius-card: 24px;
+  --radius-large: 32px;
+  --radius-pill: 999px;
+  --content-width: 1200px;
+  --page-gutter: clamp(20px, 4vw, 64px);
+  --content-inset: max(var(--page-gutter), calc((100% - var(--content-width)) / 2));
+  --section-space: var(--space-24);
+  --control-height: 48px;
+  --motion-fast: 160ms;
+  --motion-normal: 240ms;
+  --motion-easing: cubic-bezier(.2, .7, .2, 1);
+  --orange: var(--color-accent);
+  --lime: var(--color-accent);
+  --ink: var(--color-background);
+  --paper: var(--color-text);
+}
+@media (max-width: 960px) {
+  :root { --section-space: var(--space-16); }
+}
+@media (max-width: 640px) {
+  :root { --section-space: var(--space-12); }
+}
