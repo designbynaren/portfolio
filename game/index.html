@@ -14,8 +14,8 @@
   html,body{height:100%;background:var(--bg);color:var(--ink);
     font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-  #stage{position:relative;width:min(100%,calc(100vh * 16 / 9));aspect-ratio:16/9;max-width:100%;max-height:100%;overflow:hidden}
+  #wrap{position:fixed;inset:0;height:100%;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  #stage{position:relative;flex:none;width:min(100%,calc(100vh * 16 / 9));aspect-ratio:16/9;max-width:100%;max-height:100%;overflow:hidden}
   canvas{display:block;width:100%;height:100%}
   .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:clamp(8px,2.2vh,18px);background:var(--panel);text-align:center;padding:16px;backdrop-filter:blur(4px)}
@@ -61,15 +61,51 @@
   .card .btns button{padding:.7em .8em}
   .card .hintkeys{font-size:12px;color:var(--muted)}
 
-  #touch{position:fixed;left:0;right:0;bottom:0;display:none;justify-content:space-between;padding:12px 16px calc(12px + env(safe-area-inset-bottom));pointer-events:none}
-  #touch .pad{display:flex;gap:12px;pointer-events:auto}
-  #touch button{width:72px;height:72px;padding:0;border-radius:50%;font-size:28px;background:rgba(5,6,10,.55);color:var(--ink);box-shadow:none;border:2px solid rgba(233,228,216,.3)}
-  #touch button.on{background:rgba(200,32,47,.5)}
-  @media (pointer:coarse){ body.playing #touch{display:flex} }
+  /* touch controls: hidden on desktop */
+  #touch{display:none}
+  body.touch.playing #touch{display:flex}
+  #touch{justify-content:space-between;align-items:flex-end;gap:12px;pointer-events:none;z-index:4}
+  #touch .pad{display:flex;gap:10px;pointer-events:auto;touch-action:none}
+  #touch .tbtn{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;
+    background:rgba(5,6,10,.45);color:var(--ink);border:2px solid rgba(233,228,216,.28);transition:background .08s,transform .08s}
+  #touch .tbtn.on{background:rgba(200,32,47,.55);transform:scale(.94);border-color:rgba(255,255,255,.5)}
+  #touch .tbtn.jump{width:92px;height:92px}
+  #touch .tip{display:none}
+  /* landscape phones: controls float over the bottom corners of the game */
+  @media (orientation:landscape){
+    body.touch #touch{position:fixed;left:0;right:0;bottom:0;
+      padding:0 max(18px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+    body.touch #touch .tbtn{width:70px;height:70px;font-size:24px;background:rgba(5,6,10,.32);opacity:.8}
+    body.touch #touch .tbtn.jump{width:82px;height:82px}
+  }
+  /* portrait phones: the game sits on top, controls get their own panel underneath */
+  @media (orientation:portrait){
+    body.touch #wrap{flex-direction:column;justify-content:flex-start}
+    body.touch .overlay{position:fixed;inset:0}
+    body.touch #touch{position:relative;flex:1;width:100%;align-items:center;flex-wrap:wrap;align-content:center;
+      padding:12px max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+    body.touch #touch .tbtn{width:min(26vw,104px);height:min(26vw,104px);font-size:34px}
+    body.touch #touch .tbtn.jump{width:min(32vw,124px);height:min(32vw,124px)}
+    body.touch #touch .tip{display:block;width:100%;text-align:center;color:var(--muted);font-size:13px;order:3;margin-top:4px}
+  }
   a.home{color:var(--muted);font-size:13px}
-  #rotate{display:none;position:fixed;inset:0;z-index:5;background:var(--bg);color:var(--ink);align-items:center;justify-content:center;text-align:center;padding:24px;font-weight:800;font-size:20px;flex-direction:column;gap:8px}
-  #rotate span{font-size:48px;display:block}
-  @media (pointer:coarse) and (orientation:portrait){ #rotate{display:flex} }
+  body.touch .desk{display:none}
+  body:not(.touch) .mob{display:none}
+  body.touch #hudBtns button{min-width:42px;min-height:38px;font-size:16px}
+  /* short screens (phones on their side): tighter menus and card */
+  .overlay{overflow-y:auto}
+  @media (max-height:460px){
+    .overlay{gap:8px;padding-block:10px;justify-content:safe center}
+    .logo{font-size:clamp(30px,13vh,60px)}
+    .fine{display:none}
+    .card{padding:14px 18px;gap:8px}
+    .card h3{font-size:22px}
+    .stars{font-size:20px}
+    .stat{padding:6px}
+    .stat b{font-size:18px}
+    #grid button{padding:.45em 0}
+  }
+  html,body{-webkit-touch-callout:none;overscroll-behavior:none}
 </style>
 </head>
 <body>
@@ -79,6 +115,7 @@
 
     <div id="hudBtns" class="hidden">
       <button id="btnRestart" title="Restart from checkpoint (R)">↻</button>
+      <button id="btnFull" class="hidden" title="Full screen">⛶</button>
       <button id="btnMute" title="Mute (M)">♪</button>
       <button id="btnPause" title="Pause (Esc)">❚❚</button>
     </div>
@@ -91,7 +128,8 @@
         <button id="btnPlay">Play</button>
         <button id="btnLevels" class="ghost">Levels</button>
       </div>
-      <p class="keys">← → / A D move · Space / ↑ / W jump (tap for a small hop) · R restart · Esc pause · M mute</p>
+      <p class="keys desk">← → / A D move · Space / ↑ / W jump (tap for a small hop) · R restart · Esc pause · M mute</p>
+      <p class="keys mob">◀ ▶ move (slide your thumb) · ▲ jump, tap it for a small hop</p>
       <p class="fine">*this is a lie. something is following you.</p>
       <a class="home" href="../index.html">← back to portfolio</a>
     </div>
@@ -116,7 +154,7 @@
           <button id="btnReplay" class="ghost" title="Replay (R)">↻</button>
           <button id="btnNext">Next →</button>
         </div>
-        <div class="hintkeys">Enter: next · R: replay · Backspace: previous</div>
+        <div class="hintkeys desk">Enter: next · R: replay · Backspace: previous</div>
       </div>
     </div>
 
@@ -129,17 +167,15 @@
       </div>
     </div>
   </div>
-</div>
-
-<div id="rotate"><span>↻</span>Rotate your phone to landscape.<small style="color:var(--muted);font-weight:600;font-size:14px">The dead prefer landscape.</small></div>
-
-<div id="touch">
-  <div class="pad">
-    <button data-k="left" aria-label="Left">◀</button>
-    <button data-k="right" aria-label="Right">▶</button>
-  </div>
-  <div class="pad">
-    <button data-k="jump" aria-label="Jump">▲</button>
+  <div id="touch">
+    <div class="pad" id="movePad">
+      <div class="tbtn" data-k="left" role="button" aria-label="Move left">◀</div>
+      <div class="tbtn" data-k="right" role="button" aria-label="Move right">▶</div>
+    </div>
+    <div class="tip">Turn your phone sideways for a bigger view</div>
+    <div class="pad" id="jumpPad">
+      <div class="tbtn jump" data-k="jump" role="button" aria-label="Jump">▲</div>
+    </div>
   </div>
 </div>
 
@@ -439,14 +475,32 @@ addEventListener('keydown', e => {
   else if (e.code === 'Enter' && state === 'menu') { if (paused) resume(); else startFrom(save.unlocked - 1); }
 });
 addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
-addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; if (isInGame()) pause(); });
-document.querySelectorAll('#touch button').forEach(btn => {
-  const k = btn.dataset.k;
-  const on = e => { e.preventDefault(); if (k === 'jump' && !keys.jump) jumpPressed = true; keys[k] = true; btn.classList.add('on'); };
-  const off = e => { e.preventDefault(); keys[k] = false; btn.classList.remove('on'); };
-  btn.addEventListener('pointerdown', on); btn.addEventListener('pointerup', off);
-  btn.addEventListener('pointercancel', off); btn.addEventListener('pointerleave', off);
-});
+addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; if (typeof moveFingers !== 'undefined') { moveFingers.clear(); } if (isInGame()) pause(); });
+// touch: the move pad tracks each finger, so sliding from ◀ to ▶ switches direction without lifting
+const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+if (isTouch) document.body.classList.add('touch');
+const btnEls = { left: document.querySelector('[data-k=left]'), right: document.querySelector('[data-k=right]'), jump: document.querySelector('[data-k=jump]') };
+const moveFingers = new Map();
+function syncMove() {
+  const dirs = new Set(moveFingers.values());
+  keys.left = dirs.has('left'); keys.right = dirs.has('right');
+  btnEls.left.classList.toggle('on', keys.left); btnEls.right.classList.toggle('on', keys.right);
+}
+function dirAt(x, pad) {                     // left half of the pad = left, right half = right
+  const r = pad.getBoundingClientRect(); return x < r.left + r.width / 2 ? 'left' : 'right';
+}
+const movePad = document.getElementById('movePad'), jumpPad = document.getElementById('jumpPad');
+movePad.addEventListener('pointerdown', e => { e.preventDefault(); try { movePad.setPointerCapture(e.pointerId); } catch (_) {} moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); });
+movePad.addEventListener('pointermove', e => { if (moveFingers.has(e.pointerId)) { moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); } });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) movePad.addEventListener(ev, e => { moveFingers.delete(e.pointerId); syncMove(); });
+const jumpFingers = new Set();
+jumpPad.addEventListener('pointerdown', e => { e.preventDefault(); try { jumpPad.setPointerCapture(e.pointerId); } catch (_) {}
+  if (!jumpFingers.size) jumpPressed = true; jumpFingers.add(e.pointerId); keys.jump = true; btnEls.jump.classList.add('on'); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpPad.addEventListener(ev, e => {
+  jumpFingers.delete(e.pointerId); if (!jumpFingers.size) { keys.jump = false; btnEls.jump.classList.remove('on'); } });
+addEventListener('contextmenu', e => { if (isInGame()) e.preventDefault(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && isInGame()) pause(); });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
 /* ---------- canvas + cached art ---------- */
 const cv = document.getElementById('game'), ctx = cv.getContext('2d', { alpha: false });
@@ -457,19 +511,22 @@ function fitStage() {
   const cs = getComputedStyle(wrap);
   const aw = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const ah = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  let w = aw, h = w * 9 / 16; if (h > ah) { h = ah; w = h * 16 / 9; }
+  const portraitTouch = document.body.classList.contains('touch') && wrap.clientHeight > wrap.clientWidth;
+  const budget = portraitTouch ? Math.max(120, ah - 230) : ah;          // keep at least 230px for the controls
+  let w = aw, h = w * 9 / 16; if (h > budget) { h = budget; w = h * 16 / 9; }
   st.style.width = Math.floor(w) + 'px'; st.style.height = Math.floor(h) + 'px';
 }
 function resize() {
   fitStage();
   const r = cv.getBoundingClientRect();
-  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+  let dpr = Math.min(window.devicePixelRatio || 1, isTouch ? 1.75 : 2);     // phones: a little lighter for smooth frame rates
   if (r.width * dpr > 1920) dpr = 1920 / Math.max(1, r.width);          // keep the pixel count sane on big screens
   cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
   SCALE = cv.width / W; buildCaches();
 }
 addEventListener('resize', resize);
 try { new ResizeObserver(() => resize()).observe(document.getElementById('wrap')); } catch (e) {}
+addEventListener('orientationchange', () => setTimeout(resize, 250));
 
 const BG = (() => {
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -584,7 +641,8 @@ function loadLevel(i, keepCp) {
   jumpPressed = false; particles = []; shake = 0; L.cam = camTarget();
   L.ghost = L.def.ghost ? { x: P.x - 460, y: P.y - 80, speed: L.def.ghost, at: 1.4, a: 0, beat: 0, woke: false, talk: 2, armed: true, trail: [], scare: 0 } : null;
 }
-function camTarget() { return Math.max(0, Math.min(L.W - W, P.x + P.w / 2 - W * 0.4 + P.face * 30)); }
+function camPad() { return document.body.classList.contains('touch') && innerWidth > innerHeight ? 150 : 0; }
+function camTarget() { const pad = camPad(); return Math.max(-pad, Math.min(L.W - W + pad, P.x + P.w / 2 - W * 0.4 + P.face * 30)); }
 function respawn(manual) { if (manual && state === 'play') { levelDeaths++; deaths++; } loadLevel(levelIndex, true); state = 'play'; }
 
 /* ---------- collision helpers ---------- */
@@ -1160,8 +1218,10 @@ const $ = id => document.getElementById(id);
 const screens = ['menu', 'levels', 'end', 'card'];
 function show(id) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== id));
+  if (id) { moveFingers.clear(); syncMove(); jumpFingers.clear(); keys.jump = false; btnEls.jump.classList.remove('on'); }
   $('hudBtns').classList.toggle('hidden', !!id);
   document.body.classList.toggle('playing', !id);
+  setTimeout(resize, 0);
 }
 const fmt = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 function showMenu() {
@@ -1224,6 +1284,18 @@ $('btnRestart').onclick = e => { e.currentTarget.blur(); respawn(true); };
 $('btnPause').onclick = e => { e.currentTarget.blur(); pause(); };
 $('btnMute').onclick = e => { e.currentTarget.blur(); toggleMute(); };
 $('btnMute').textContent = muted ? '×' : '♪';
+const fsTarget = document.documentElement;
+if (isTouch && (fsTarget.requestFullscreen || fsTarget.webkitRequestFullscreen) && document.fullscreenEnabled !== false) {
+  $('btnFull').classList.remove('hidden');
+  $('btnFull').onclick = async e => {
+    e.currentTarget.blur();
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) await (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else { await (fsTarget.requestFullscreen || fsTarget.webkitRequestFullscreen).call(fsTarget); try { await screen.orientation.lock('landscape'); } catch (_) {} }
+    } catch (_) { $('btnFull').classList.add('hidden'); }      // not allowed here: hide the button
+    setTimeout(resize, 300);
+  };
+}
 
 loadLevel(0, false); resize(); showMenu(); requestAnimationFrame(frame);
 
