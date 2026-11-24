@@ -109,55 +109,74 @@ const T = 30, COLS = 32, ROWS = 18, W = 960, H = 540;
 const PW = 20, PH = 24;
 const GRAV = 1900, JUMP = 640, SPEED = 230;
 const STEP = 1 / 120;
-const C = { bg1:'#120e1f', bg2:'#231a40', tile:'#efe3c8', tileTop:'#fffaf0', tileShade:'#cbbd9e',
+const C = { sky1:'#0b1026', sky2:'#1d2150', sky3:'#2f2a5c', moon:'#fbeed2', hill1:'#252658', hill2:'#1a1b42', doorIn:'#0b0a1c',
+            tile:'#eadcbb', tileTop:'#fff6e0', tileLip:'#cdbb93', tileShade:'#c9b78f', tileDot:'#d9c79f',
             spike:'#ff5a6a', player:'#ffd23f', limb:'#f0b400', shoe:'#ff7a59', eye:'#1a1300', door:'#ffd23f', ink:'#f3e9d2', muted:'#9a8fb8' };
 
 /* ---------- levels ----------
    Map legend: '#' ground · 'a'-'h' ground in a trap group · '^' spike · 'v' ceiling spike
-               '1'-'9' hidden spikes (trap group) · 'P' start · 'D' door
-   Trap zone: x,w (+ optional y,h) in tiles — fires once when the player's centre enters it. */
+               '1'-'9' hidden spikes (trap group) · 'P' start · 'D' door · 'F' fake door
+   Trap zone: x,w (+ optional y,h) in tiles. Fires once when the player's centre enters it.
+   when:'jump' fires only if the player jumps inside the zone; when:'ground' only while standing. */
 const LEVELS = [
-  { name:'Hello, Friend', hint:'Walk to the door. That\'s it. Promise.',
+  { name:'Hello, Friend', hint:'Just walk to the door.',
     build(b){ b.fill(0,15,31,17,'#'); b.fill(12,15,14,17,'.'); b.fill(21,14,22,14,'1'); b.set(2,14,'P'); b.set(29,14,'D'); },
     traps:[ {x:19,w:1,do:'rise',g:'1'} ] },
 
   { name:'Solid Ground', hint:'The floor is perfectly reliable.',
-    build(b){ b.fill(0,15,31,17,'#'); b.fill(10,15,13,17,'a'); b.fill(17,15,19,17,'b'); b.set(2,14,'P'); b.set(29,14,'D'); },
-    traps:[ {x:11,w:2,do:'crumble',g:'a'}, {x:17,w:2,do:'crumble',g:'b'} ] },
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(10,15,13,17,'a'); b.fill(14,15,17,17,'b'); b.fill(26,14,27,14,'1');
+              b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:11,w:2,do:'crumble',g:'a'}, {x:14,w:1,when:'ground',do:'crumble',g:'b',delay:0.3},
+            {x:20,w:5,when:'jump',do:'rise',g:'1'} ] },
 
   { name:'Commitment', hint:'The door is right there.',
     build(b){ b.fill(0,15,21,17,'#'); b.fill(25,15,31,17,'#'); b.fill(28,12,31,12,'#'); b.set(2,14,'P'); b.set(19,14,'D'); },
     traps:[ {x:16,w:2,do:'door',tx:27,ty:14,speed:520}, {x:25,w:1,do:'door',tx:30,ty:11,speed:320} ] },
 
-  { name:'Heads Up', hint:'Low ceiling. Mind your head.',
+  { name:'Wrong Way', hint:'Exits are always on the right.',
+    doorHidden:true,
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(6,15,7,16,'.'); b.fill(6,17,7,17,'^'); b.fill(21,14,22,14,'1');
+              b.set(15,14,'P'); b.set(28,14,'F'); b.set(2,14,'D'); },
+    traps:[ {x:19,w:1,do:'rise',g:'1'}, {x:0,w:10,do:'showDoor'} ] },
+
+  { name:'Heads Up', hint:'Mind your head.',
     build(b){ b.fill(0,15,31,17,'#'); b.fill(6,4,25,10,'#'); b.fill(12,11,14,12,'a'); b.fill(20,11,22,12,'b'); b.set(2,14,'P'); b.set(29,14,'D'); },
     traps:[ {x:11,w:1,do:'fall',g:'a'}, {x:19,w:1,do:'fall',g:'b',delay:0.45} ] },
 
-  { name:'Leap of Faith', hint:'Some paths only appear once you trust them.',
+  { name:'Leap of Faith', hint:'Trust the invisible.',
     hidden:['b'], fake:['a'],
     build(b){ b.fill(0,15,8,17,'#'); b.fill(23,15,31,17,'#'); b.fill(9,17,22,17,'^');
               b.fill(13,14,14,14,'b'); b.fill(18,13,20,13,'b'); b.fill(26,15,27,17,'a');
               b.set(2,14,'P'); b.set(29,14,'D'); },
     traps:[] },
 
-  { name:'Keep Moving', hint:'Whatever you do, don\'t stop.',
+  { name:'Backwards', hint:'Left is left. Right is right.',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(12,15,14,16,'.'); b.fill(12,17,14,17,'^'); b.fill(19,15,21,16,'.'); b.fill(19,17,21,17,'^');
+              b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:8,w:1,do:'reverse',on:true}, {x:24,w:1,do:'reverse',on:false} ] },
+
+  { name:'Keep Moving', hint:'Don\'t stop.',
     build(b){ b.fill(0,15,31,17,'#'); b.fill(15,15,16,17,'.'); b.fill(5,14,14,14,'1'); b.fill(17,14,25,14,'1');
               b.fill(27,14,28,14,'2'); b.set(1,14,'P'); b.set(30,14,'D'); },
     traps:[ {x:5,w:1,do:'rise',g:'1',delay:0.25,stagger:1/6.2}, {x:26,w:1,do:'rise',g:'2'} ] },
+
+  { name:'Incoming', hint:'Clear skies tonight.',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(16,13,16,14,'#'); b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:7,w:1,do:'drop',lead:true}, {x:13,w:1,do:'drop',lead:true}, {x:20,w:1,do:'drop',lead:true},
+            {x:25,w:1,do:'drop',lead:false} ] },
 
   { name:'Going Up', hint:'Enjoy the ride.',
     build(b){ b.fill(0,15,9,17,'#'); b.fill(12,14,14,14,'a'); b.fill(17,6,31,7,'#'); b.fill(24,6,26,7,'b');
               b.fill(10,1,16,1,'v'); b.set(2,14,'P'); b.set(29,5,'D'); },
     traps:[ {x:12,w:3,y:12,h:3,do:'move',g:'a',vx:0,vy:-3.5,dist:12}, {x:25,w:1,y:0,h:8,do:'crumble',g:'b'} ] },
 
-  { name:'The Last Door', hint:'Final level. No tricks. (Really.)',
+  { name:'The Last Door', hint:'No tricks. Really.',
     build(b){ b.fill(0,15,31,17,'#'); b.fill(15,15,28,17,'c'); b.fill(24,12,28,12,'#');
               b.set(2,14,'P'); b.set(29,14,'D'); },
     traps:[ {x:16,w:1,do:'crumble',g:'c',stagger:1/6.8}, {x:27,w:1,do:'door',tx:25,ty:11,speed:360} ] },
 ];
 
-const QUIPS = ['Totally fair.','That floor had plans.','Trust no tile.','Skill issue? Never.','The door says hi.',
-  'Character building.','Ouch. Again.','Nobody saw that.','Learning experience!','Classic.','It was right there.'];
+const QUIPS = ['Totally fair.','Trust no tile.','Ouch.','Classic.','Again?','Nope.','Oops.'];
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'trust-issues-v1';
@@ -235,13 +254,13 @@ function buildLevel(i) {
     set(x, y, c) { g[y][x] = c; },
   };
   def.build(b);
-  const lv = { def, tiles: [], spikes: [], door: null, start: null, groups: {}, t: 0,
+  const lv = { def, tiles: [], spikes: [], fakes: [], balls: [], reverse: false, chomp: null, door: null, start: null, groups: {}, t: 0,
                traps: def.traps.map(t => ({ ...t, fired: false })) };
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = g[y][x];
     if (c === '#' || /[a-h]/.test(c)) {
       const grp = c === '#' ? null : c;
-      lv.tiles.push({ x: x * T, y: y * T, w: T, h: T, g: grp,
+      lv.tiles.push({ x: x * T, y: y * T, w: T, h: T, g: grp, seed: (x * 73 + y * 151) % 97,
         solid: !(grp && def.fake && def.fake.includes(grp)),
         visible: !(grp && def.hidden && def.hidden.includes(grp)),
         hiddenTile: !!(grp && def.hidden && def.hidden.includes(grp)),
@@ -250,14 +269,15 @@ function buildLevel(i) {
       const trap = /[1-9]/.test(c);
       lv.spikes.push({ x: x * T, y: y * T, dir: c === 'v' ? 'down' : 'up', g: trap ? c : null, rise: trap ? 0 : 1, riseAt: Infinity, sounded: false });
     } else if (c === 'P') lv.start = { x: x * T + (T - PW) / 2, y: (y + 1) * T - PH };
-    else if (c === 'D') lv.door = { x: x * T, y: (y + 1) * T - 45, w: T, h: 45, tx: null, ty: null, speed: 0 };
+    else if (c === 'D') lv.door = { x: x * T, y: (y + 1) * T - 45, w: T, h: 45, tx: null, ty: null, speed: 0, hidden: !!def.doorHidden, appear: def.doorHidden ? 0 : 1 };
+    else if (c === 'F') lv.fakes.push({ x: x * T, y: (y + 1) * T - 45, w: T, h: 45 });
   }
   return lv;
 }
 
 function loadLevel(i) {
   levelIndex = i; L = buildLevel(i);
-  P = { x: L.start.x, y: L.start.y, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1, walk: 0, walkAmt: 0, dustT: 0 };
+  P = { x: L.start.x, y: L.start.y, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1, walk: 0, walkAmt: 0, dustT: 0, jumped: false };
   jumpPressed = false; particles = []; shake = 0;
 }
 function restart(fromDeath) { if (!fromDeath) levelDeaths = levelDeaths; loadLevel(levelIndex); state = 'play'; }
@@ -277,6 +297,14 @@ function fire(tr) {
     L.groups[tr.g] = { mode: 'fall', at: L.t + d, vy: 0 };
   } else if (tr.do === 'move') {
     L.groups[tr.g] = { mode: 'move', at: L.t + d, vx: tr.vx * T, vy: tr.vy * T, left: tr.dist * T };
+  } else if (tr.do === 'showDoor') {
+    L.door.hidden = false; sfx('door'); burst(L.door.x + T / 2, L.door.y + 22, C.door, 18, 200);
+  } else if (tr.do === 'reverse') {
+    L.reverse = tr.on; sfx('door'); burst(P.x + P.w / 2, P.y, '#b9a8ff', 12, 160);
+  } else if (tr.do === 'drop') {
+    const fallT = (P.y + P.h / 2 + 20) / 600;
+    const tx = P.x + P.w / 2 + (tr.lead ? P.vx * fallT : 0);
+    L.balls.push({ x: Math.max(12, Math.min(W - 12, tx)), y: -20, vy: 600, r: 11, spin: 0 }); sfx('trap');
   } else if (tr.do === 'door') {
     L.door.tx = tr.tx * T; L.door.ty = (tr.ty + 1) * T - 45; L.door.speed = tr.speed; sfx('door');
   }
@@ -286,6 +314,8 @@ function updateTraps() {
   for (const tr of L.traps) {
     if (tr.fired) continue;
     const y = tr.y ?? -99, h = tr.h ?? 999;
+    if (tr.when === 'jump' && !P.jumped) continue;
+    if (tr.when === 'ground' && !P.ground) continue;
     if (cx >= tr.x && cx < tr.x + tr.w && cy >= y && cy < y + h) { tr.fired = true; fire(tr); }
   }
 }
@@ -331,8 +361,17 @@ function updateWorld(dt) {
     if (!s.sounded) { s.sounded = true; sfx('trap'); }
     s.rise = Math.min(1, s.rise + dt / 0.07);
   }
+  // falling spike balls
+  for (const b of L.balls) {
+    b.y += b.vy * dt; b.spin += dt * 8;
+    const hit = L.tiles.find(t => t.solid && b.x > t.x && b.x < t.x + t.w && b.y + b.r > t.y && b.y < t.y + t.h);
+    if (hit) { b.dead = true; burst(b.x, hit.y, C.spike, 12, 220); shake = 5; sfx('thud'); }
+    else if (state === 'play' && Math.hypot(b.x - (P.x + P.w / 2), b.y - (P.y + P.h / 2)) < b.r + 9) die();
+  }
+  L.balls = L.balls.filter(b => !b.dead && b.y < H + 40);
   // door
   const D = L.door;
+  if (D.hidden === false && D.appear < 1) D.appear = Math.min(1, D.appear + dt * 4);
   if (D.tx !== null) {
     const ddx = D.tx - D.x, ddy = D.ty - D.y, dist = Math.hypot(ddx, ddy), st = D.speed * dt;
     if (dist <= st) { D.x = D.tx; D.y = D.ty; D.tx = D.ty = null; } else { D.x += ddx / dist * st; D.y += ddy / dist * st; }
@@ -344,14 +383,16 @@ function solids() { return L.tiles.filter(t => t.solid); }
 function touch(t) { if (t.hiddenTile && !t.visible) { t.visible = true; burst(t.x + T / 2, t.y + 4, '#efe3c8', 6, 120); } }
 
 function updatePlayer(dt) {
-  const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  let dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  if (L.reverse) dir = -dir;
+  P.jumped = false;
   if (dir) { P.vx += dir * (P.ground ? 2600 : 1800) * dt; P.vx = Math.max(-SPEED, Math.min(SPEED, P.vx)); P.face = dir; }
   else { const f = (P.ground ? 3200 : 900) * dt; P.vx = Math.abs(P.vx) <= f ? 0 : P.vx - Math.sign(P.vx) * f; }
 
   if (jumpPressed) { P.buffer = 0.12; jumpPressed = false; }
   P.buffer -= dt; P.coyote = P.ground ? 0.09 : P.coyote - dt;
   if (P.buffer > 0 && P.coyote > 0) {
-    P.vy = -JUMP; P.buffer = 0; P.coyote = 0; P.ground = false; P.sx = 0.75; P.sy = 1.3; sfx('jump'); dust(P.x + P.w / 2, P.y + P.h, 6, 0);
+    P.vy = -JUMP; P.jumped = true; P.buffer = 0; P.coyote = 0; P.ground = false; P.sx = 0.75; P.sy = 1.3; sfx('jump'); dust(P.x + P.w / 2, P.y + P.h, 6, 0);
   }
   let g = GRAV; if (P.vy < 0 && !keys.jump) g *= 2.4;
   P.vy = Math.min(P.vy + g * dt, 950);
@@ -389,7 +430,8 @@ function updatePlayer(dt) {
   }
   // door
   const D = L.door, cx = P.x + P.w / 2, cy = P.y + P.h / 2;
-  if (cx > D.x + 4 && cx < D.x + D.w - 4 && cy > D.y && cy < D.y + D.h) win();
+  for (const f of L.fakes) if (cx > f.x + 4 && cx < f.x + f.w - 4 && cy > f.y && cy < f.y + f.h) { L.chomp = f; sfx('thud'); return die(); }
+  if (!D.hidden && cx > D.x + 4 && cx < D.x + D.w - 4 && cy > D.y && cy < D.y + D.h) win();
 }
 
 function die() {
@@ -446,27 +488,70 @@ function frame(now) {
 /* ---------- render ---------- */
 function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 
+/* backdrop: night sky, moon, stars and two layers of hills (built once) */
+const BG = (() => {
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const stars = Array.from({ length: 70 }, () => ({ x: rnd() * W, y: rnd() * H * 0.6, r: 0.5 + rnd() * 1.2, p: rnd() * 6 }));
+  const hill = (base, amp, f1, f2, ph) => { const pts = []; for (let x = 0; x <= W; x += 16) pts.push([x, base - amp * (0.6 * Math.sin(x * f1 + ph) + 0.4 * Math.sin(x * f2 + ph * 2))]); return pts; };
+  return { stars, far: hill(330, 46, 0.006, 0.017, 1.3), near: hill(400, 34, 0.009, 0.023, 4.1) };
+})();
+function drawHill(pts, color) {
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, H);
+  for (const [x, y] of pts) ctx.lineTo(x, y);
+  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+}
+function drawBackground(time) {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, C.sky1); g.addColorStop(0.65, C.sky2); g.addColorStop(1, C.sky3);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (const s of BG.stars) { ctx.globalAlpha = 0.35 + 0.35 * Math.sin(time * 1.3 + s.p); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  const mg = ctx.createRadialGradient(790, 120, 10, 790, 120, 130);
+  mg.addColorStop(0, 'rgba(255,236,200,.22)'); mg.addColorStop(1, 'rgba(255,236,200,0)');
+  ctx.fillStyle = mg; ctx.fillRect(640, 0, 320, 280);
+  ctx.fillStyle = C.moon; ctx.beginPath(); ctx.arc(790, 120, 34, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.06)'; ctx.beginPath(); ctx.arc(778, 112, 7, 0, 7); ctx.arc(802, 132, 5, 0, 7); ctx.fill();
+  drawHill(BG.far, C.hill1); drawHill(BG.near, C.hill2);
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.95);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.35)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+}
+function doorPath(x, y, w, h) {
+  const r = w / 2; ctx.beginPath(); ctx.moveTo(x, y + h); ctx.lineTo(x, y + r); ctx.arc(x + r, y + r, r, Math.PI, 0); ctx.lineTo(x + w, y + h); ctx.closePath();
+}
+function drawDoor(d, time, chomp) {
+  const x = d.x + 3, w = d.w - 6, pulse = 0.5 + 0.5 * Math.sin(time * 4), a = d.appear ?? 1;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.translate(d.x + d.w / 2, d.y + d.h); ctx.scale(a, a); ctx.translate(-(d.x + d.w / 2), -(d.y + d.h));
+  ctx.shadowColor = chomp ? C.spike : C.door; ctx.shadowBlur = 10 + pulse * 10;
+  doorPath(x, d.y, w, d.h); ctx.fillStyle = chomp ? '#3a0d16' : C.doorIn; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = chomp ? C.spike : C.door; ctx.stroke(); ctx.shadowBlur = 0;
+  if (chomp) {                                               // the fake door bites
+    ctx.fillStyle = '#fff'; ctx.beginPath();
+    for (let i = 0; i < 3; i++) { const tx = x + 2 + i * (w - 4) / 3, tw = (w - 4) / 3;
+      ctx.moveTo(tx, d.y + 16); ctx.lineTo(tx + tw / 2, d.y + 24); ctx.lineTo(tx + tw, d.y + 16);
+      ctx.moveTo(tx, d.y + d.h - 2); ctx.lineTo(tx + tw / 2, d.y + d.h - 10); ctx.lineTo(tx + tw, d.y + d.h - 2); }
+    ctx.fill();
+  } else {
+    const lg = ctx.createLinearGradient(0, d.y, 0, d.y + d.h);
+    lg.addColorStop(0, 'rgba(255,210,63,.0)'); lg.addColorStop(1, 'rgba(255,210,63,.28)');
+    doorPath(x + 3, d.y + 3, w - 6, d.h - 3); ctx.fillStyle = lg; ctx.fill();
+    ctx.fillStyle = C.door; ctx.beginPath(); ctx.arc(x + w - 5, d.y + d.h * 0.6, 2.2, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function render(time) {
   ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
-  const grad = ctx.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, C.bg2); grad.addColorStop(1, C.bg1);
-  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(255,255,255,.04)';
-  for (let y = T; y < H; y += T) for (let x = T; x < W; x += T) ctx.fillRect(x - 1, y - 1, 2, 2);
+  drawBackground(time);
   if (!L) return;
 
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
 
-  // hint text in the world
-  ctx.fillStyle = 'rgba(243,233,210,.55)'; ctx.font = '600 18px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
-  ctx.fillText(L.def.hint, W / 2, 96);
-
-  // door
-  const D = L.door, pulse = 0.5 + 0.5 * Math.sin(time * 4);
-  ctx.save(); ctx.shadowColor = C.door; ctx.shadowBlur = 12 + pulse * 10;
-  ctx.fillStyle = '#0b0816'; roundRect(D.x + 2, D.y, D.w - 4, D.h, 12); ctx.fill();
-  ctx.lineWidth = 3; ctx.strokeStyle = C.door; ctx.stroke(); ctx.restore();
-  ctx.fillStyle = C.door; ctx.beginPath(); ctx.arc(D.x + D.w - 9, D.y + D.h * 0.58, 2.5, 0, 7); ctx.fill();
+  // doors
+  if (!L.door.hidden) drawDoor(L.door, time, false);
+  for (const f of L.fakes) drawDoor(f, time, L.chomp === f && state === 'dead');
 
   // tiles
   const occ = new Set();
@@ -483,8 +568,12 @@ function render(time) {
       continue;
     }
     ctx.fillStyle = C.tile; ctx.fillRect(t.x + ox, t.y + oy, T + 0.5, T + 0.5);
+    ctx.fillStyle = C.tileDot;
+    ctx.fillRect(t.x + ox + 4 + t.seed % 17, t.y + oy + 9 + t.seed % 13, 3, 2);
+    ctx.fillRect(t.x + ox + 6 + (t.seed * 7) % 19, t.y + oy + 16 + (t.seed * 3) % 9, 2, 2);
     if (!occ.has(Math.round(t.x) + ',' + Math.round(t.y - T)) || t.falling) {
-      ctx.fillStyle = C.tileTop; ctx.fillRect(t.x + ox, t.y + oy, T + 0.5, 4);
+      ctx.fillStyle = C.tileTop; ctx.fillRect(t.x + ox, t.y + oy, T + 0.5, 5);
+      ctx.fillStyle = C.tileLip; ctx.fillRect(t.x + ox, t.y + oy + 5, T + 0.5, 2);
     }
     if (!occ.has(Math.round(t.x) + ',' + Math.round(t.y + T)) || t.falling) {
       ctx.fillStyle = C.tileShade; ctx.fillRect(t.x + ox, t.y + oy + T - 4, T + 0.5, 4);
@@ -506,8 +595,19 @@ function render(time) {
     ctx.fill(); ctx.restore();
   }
 
+  // spike balls
+  for (const b of L.balls) {
+    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.spin); ctx.fillStyle = C.spike; ctx.beginPath();
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, r = i % 2 ? b.r * 0.7 : b.r + 4; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill(); ctx.fillStyle = '#c23347'; ctx.beginPath(); ctx.arc(0, 0, b.r * 0.45, 0, 7); ctx.fill(); ctx.restore();
+  }
+
   // player
   if (state !== 'dead') drawPlayer(time);
+  if (L.reverse && state === 'play') {
+    ctx.fillStyle = '#b9a8ff'; ctx.font = '800 16px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('⇄', P.x + P.w / 2, P.y - 14);
+  }
 
   // particles
   for (const p of particles) { ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2)); ctx.fillStyle = p.color; if (p.round) { ctx.beginPath(); ctx.arc(p.x, p.y, p.s / 2, 0, 7); ctx.fill(); } else ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
@@ -516,14 +616,19 @@ function render(time) {
 
   // HUD
   if (isInGame()) {
-    ctx.textAlign = 'left'; ctx.fillStyle = C.ink; ctx.font = '800 20px ui-rounded,system-ui,sans-serif';
-    ctx.fillText(String(levelIndex + 1).padStart(2, '0') + ' — ' + L.def.name, 22, 36);
-    ctx.fillStyle = C.muted; ctx.font = '700 16px ui-rounded,system-ui,sans-serif';
-    ctx.fillText('☠ ' + deaths + '   ·   this level: ' + levelDeaths, 22, 60);
+    ctx.textAlign = 'left'; ctx.font = '700 13px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.muted;
+    ctx.fillText('LEVEL ' + (levelIndex + 1), 22, 30);
+    ctx.font = '800 20px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.ink;
+    ctx.fillText(L.def.name, 22, 53);
+    const ha = levelDeaths === 0 ? Math.max(0, Math.min(1, L.t * 3, (3.2 - L.t) * 2)) : 0;
+    if (ha > 0) {
+      ctx.globalAlpha = ha * 0.8; ctx.textAlign = 'center'; ctx.fillStyle = C.ink; ctx.font = '600 18px ui-rounded,system-ui,sans-serif';
+      ctx.fillText(L.def.hint, W / 2, 110); ctx.globalAlpha = 1;
+    }
   }
   if (state === 'dead') {
-    ctx.textAlign = 'center'; ctx.fillStyle = C.spike; ctx.font = '900 40px ui-rounded,system-ui,sans-serif';
-    ctx.fillText(quip, W / 2, H / 2 - 40);
+    ctx.textAlign = 'center'; ctx.fillStyle = C.spike; ctx.font = '900 34px ui-rounded,system-ui,sans-serif';
+    ctx.fillText(quip, W / 2, 150);
   }
 }
 
