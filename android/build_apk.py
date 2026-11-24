@@ -161,8 +161,8 @@ def build_dex(android_jar, dx_jar, work):
     os.makedirs(classes); os.makedirs(stubs)
     src = [os.path.join(dp, f) for dp, _, fs in os.walk(os.path.join(ROOT, 'src')) for f in fs if f.endswith('.java')]
     stub_src = [os.path.join(dp, f) for dp, _, fs in os.walk(os.path.join(ROOT, 'stubs')) for f in fs if f.endswith('.java')]
-    run(['javac', '-nowarn', '-source', '8', '-target', '8', '-bootclasspath', android_jar, '-d', stubs] + stub_src)
-    run(['javac', '-nowarn', '-source', '8', '-target', '8', '-bootclasspath', android_jar, '-cp', stubs, '-d', classes] + src)
+    run(['javac', '-nowarn', '--release', '8', '-cp', android_jar, '-d', stubs] + stub_src)
+    run(['javac', '-nowarn', '--release', '8', '-cp', stubs + os.pathsep + android_jar, '-d', classes] + src)
     dex = os.path.join(work, 'classes.dex')
     run(['java', '-cp', dx_jar, 'com.android.dx.command.Main', '--dex', '--min-sdk-version=%d' % MIN_SDK,
          '--output=' + dex, classes])
