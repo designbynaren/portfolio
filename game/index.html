@@ -152,6 +152,7 @@ const T = 30, ROWS = 18, W = 960, H = 540;
 const PW = 20, PH = 24;
 const GRAV = 1900, JUMP = 640, SPEED = 230;
 const STEP = 1 / 120;
+const STRIDE = 15, STRIDE_K = Math.PI / STRIDE;
 const C = { sky1:'#05060a', sky2:'#0d1116', sky3:'#1b2420', moon:'#d2493e', moonGlow:'200,50,40', hill1:'#11161a', hill2:'#090c0f', doorIn:'#030405',
             tile:'#3b3944', tileTop:'#66626f', tileLip:'#2a2831', tileShade:'#24222a', tileDot:'#46434f', moss:'#3d5a3c',
             spike:'#b3202e', bone:'#e9e4d8', boneShade:'#b9b3a3', glow:'#8dffc4', door:'#8dffc4',
@@ -319,6 +320,7 @@ function sfx(kind) {
     audio();
     switch (kind) {
       case 'jump': noise(0.16, 600, 2200, 1.2, 0.05); clack(1, 0.025); break;
+      case 'step': tone(1700 + Math.random() * 500, 1100, 0.025, 'square', 0.012); tone(140, 90, 0.04, 'triangle', 0.02); break;
       case 'land': clack(2, 0.03); tone(110, 70, 0.08, 'triangle', 0.05); break;
       case 'die':
         tone(950, 180, 0.55, 'sawtooth', 0.05); tone(960, 190, 0.55, 'sawtooth', 0.04);
@@ -692,9 +694,13 @@ function updatePlayer(dt) {
   const moving = P.ground ? Math.min(1, Math.abs(P.vx) / SPEED) : 0;
   P.walkAmt += (moving - P.walkAmt) * Math.min(1, dt * 12);
   if (P.ground) {
-    P.walk += Math.abs(P.vx) * dt * 0.085;
+    const before = Math.floor(P.walk / Math.PI);
+    P.walk += Math.abs(P.vx) * dt * STRIDE_K;                // one half-cycle = one step of STRIDE px, so planted feet don't slide
+    if (Math.floor(P.walk / Math.PI) !== before && P.walkAmt > 0.35) {
+      P.steps = (P.steps || 0) + 1; if (P.steps % 2 === 0) sfx('step');
+      dust(P.x + P.w / 2 - P.face * 4, P.y + P.h, 1, -P.face);
+    }
     P.dustT -= dt;
-    if (Math.abs(P.vx) > 160 && P.dustT <= 0) { P.dustT = 0.13; dust(P.x + P.w / 2 - P.face * 6, P.y + P.h, 1, -P.face); }
   }
   P.sx += (1 - P.sx) * Math.min(1, dt * 14); P.sy += (1 - P.sy) * Math.min(1, dt * 14);
 
@@ -933,68 +939,108 @@ function render(time) {
   }
 }
 
+// two-bone inverse kinematics: returns the joint so the limb bends toward `bend` (+1 forward, -1 back)
+function ik(ax, ay, tx, ty, l1, l2, face, bend) {
+  let dx = tx - ax, dy = ty - ay, d = Math.hypot(dx, dy) || 0.01;
+  const max = l1 + l2 - 0.05; if (d > max) { tx = ax + dx / d * max; ty = ay + dy / d * max; dx = tx - ax; dy = ty - ay; d = max; }
+  const base = Math.atan2(dy, dx), a = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))));
+  const j1x = ax + Math.cos(base + a) * l1, j1y = ay + Math.sin(base + a) * l1, j2x = ax + Math.cos(base - a) * l1, j2y = ay + Math.sin(base - a) * l1;
+  const pick = (j1x - j2x) * face * bend > 0;
+  return { jx: pick ? j1x : j2x, jy: pick ? j1y : j2y, tx, ty };
+}
+function bone(x1, y1, x2, y2, w) {                     // a bone with knobbly ends
+  ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x2, y2, w * 0.62, 0, 7); ctx.fill();
+}
 function drawPlayer(time) {
-  const cx = P.x + P.w / 2, by = P.y + P.h, air = !P.ground;
+  const f = P.face, cx = P.x + P.w / 2, by = P.y + P.h, air = !P.ground;
   const rising = air && P.vy < -60, falling = air && P.vy > 140;
-  const sw = Math.sin(P.walk) * 0.8 * P.walkAmt;
-  const breathe = (!air && P.walkAmt < 0.1) ? Math.sin(time * 3) : 0;
+  const wa = P.walkAmt, ph = P.walk;
+  const idle = !air && wa < 0.08, breathe = idle ? Math.sin(time * 2.6) : 0;
   const pop = P.spawn < 1 ? 0.6 + 0.4 * P.spawn : 1;
-  const LEG = 7, hipY = by - LEG + (1 - Math.min(1, P.sy)) * 4;
-  const bob = !air ? Math.abs(Math.sin(P.walk)) * -1.4 * P.walkAmt : 0;
-  const lean = (P.vx / SPEED) * (air ? 0.08 : 0.16);
+  const sq = (1 - Math.min(1, P.sy)) * 4;
+  const THIGH = 5, SHIN = 5;
+  // hips dip as each foot lands and rise over the planted foot
+  const bob = air ? 0 : -Math.abs(Math.sin(ph)) * 1.7 * wa + (1 - Math.abs(Math.sin(ph))) * 0.4 * wa;
+  const hipY = by - 9.2 + sq + bob + breathe * 0.25;
+  const lean = (P.vx / SPEED) * (air ? 0.06 : 0.22) + (falling ? -0.06 * f : 0);
+  const stride = STRIDE * Math.min(1, wa * 1.6), lift = 4.2 * Math.min(1, wa * 1.4);
+
   ctx.save(); ctx.globalAlpha = P.alpha; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  if (!air) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(cx, by + 1, 10, 2.5, 0, 0, 7); ctx.fill(); }
-  // legs: thigh + shin bones with a knee
-  for (const s of [-1, 1]) {
-    const hx = cx + s * 3, hy = hipY + bob;
-    let fx, fy;
-    if (!air) {
-      fx = hx + Math.sin(sw * s) * LEG;
-      fy = by - Math.max(0, Math.cos(P.walk + (s > 0 ? 0 : Math.PI))) * 3.2 * P.walkAmt;
-      if (P.walkAmt < 0.05) fx = hx + s * 0.8;
-    } else if (rising) { fx = hx + s * 1.2 - P.face * 2; fy = hy + LEG * 0.55; }
-    else { fx = hx + s * 3.2 + Math.sin(time * 18 + s) * (falling ? 1.2 : 0); fy = hy + LEG * 0.95; }
-    const kx = (hx + fx) / 2 + P.face * 1.6, ky = (hy + fy) / 2;
-    ctx.strokeStyle = s === P.face ? C.bone : C.boneShade; ctx.lineWidth = 2.4;
-    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
-    ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.ellipse(fx + P.face * 1.6, fy - 0.5, 3, 1.5, 0, 0, 7); ctx.fill();
-  }
-  ctx.translate(cx, hipY + bob); ctx.rotate(lean); ctx.scale(pop * P.sx, pop * P.sy);
-  const arm = (s) => {                                   // upper arm + forearm
-    let th;
-    if (!air) th = -sw * s * 0.9 + s * (0.2 + breathe * 0.05);
-    else if (rising) th = s * 2.6;
-    else th = s * (1.8 + Math.sin(time * 24 + s * 2) * (falling ? 0.5 : 0.15));
-    const sx0 = s * 5, sy0 = -12, ex = sx0 + Math.sin(th) * 4.5, ey = sy0 + Math.cos(th) * 4.5;
-    const hx = ex + Math.sin(th + s * 0.5) * 4.5, hy = ey + Math.cos(th + s * 0.5) * 4.5;
-    ctx.strokeStyle = s === P.face ? C.bone : C.boneShade; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(sx0, sy0); ctx.lineTo(ex, ey); ctx.lineTo(hx, hy); ctx.stroke();
-    ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(hx, hy, 1.7, 0, 7); ctx.fill();
+  if (!air) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(cx, by + 1, 10 + wa * 2, 2.5, 0, 0, 7); ctx.fill(); }
+
+  // ---- legs ----
+  const leg = (side, front) => {
+    const hx = cx + side * 1.6 * f, hy = hipY;
+    let fx, fy, toe = 0;
+    if (!air && wa > 0.04) {
+      const t = (((ph + (side > 0 ? 0 : Math.PI)) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) / (2 * Math.PI);
+      if (t < 0.5) { const u = t / 0.5; fx = hx + f * stride * (0.5 - u); fy = by; }                  // planted, sliding back under the hip
+      else { const v = (t - 0.5) / 0.5, e = v * v * (3 - 2 * v);                                        // swinging forward in an arc
+             fx = hx + f * stride * (-0.5 + e); fy = by - Math.sin(v * Math.PI) * lift; toe = Math.sin(v * Math.PI) * 0.5; }
+    } else if (!air) { fx = hx + side * f * 1.2; fy = by; }
+    else if (rising) { fx = hx + f * (side > 0 ? 3 : -1); fy = hy + 6; toe = 0.7; }
+    else { fx = hx + f * side * 2.5 + Math.sin(time * 16 + side) * (falling ? 1.5 : 0.4); fy = hy + 9; toe = 0.9; }
+    const k = ik(hx, hy, fx, fy, THIGH, SHIN, f, 1);
+    ctx.strokeStyle = ctx.fillStyle = front ? C.bone : C.boneShade;
+    bone(hx, hy, k.jx, k.jy, 2.4); bone(k.jx, k.jy, k.tx, k.ty, 2.1);
+    ctx.save(); ctx.translate(k.tx, k.ty); ctx.rotate(toe * f);              // foot bone points where he's going
+    ctx.beginPath(); ctx.ellipse(f * 2, -0.3, 3.2, 1.4, 0, 0, 7); ctx.fill(); ctx.restore();
   };
-  arm(-P.face);
-  // pelvis, spine, ribs
-  ctx.fillStyle = C.bone; roundRect(-5, -1.5, 10, 3.5, 1.5); ctx.fill();
-  ctx.strokeStyle = C.bone; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -14); ctx.stroke();
-  ctx.lineWidth = 1.7;
+  leg(-1, false);
+
+  // ---- arms (swing against the legs, elbows bend) ----
+  const shX = cx + Math.sin(lean) * 12, shY = hipY - 11.5 + Math.cos(lean) * 0.5;
+  const arm = (side, front) => {
+    const sx0 = shX + side * 3.6 * f * 0.4, sy0 = shY;
+    let a1, a2;                                         // angles from straight down, + is toward facing
+    if (!air) { const sw = Math.sin(ph + (side > 0 ? Math.PI : 0)) * 0.65 * wa; a1 = sw + 0.05 * wa + breathe * 0.04; a2 = a1 + 0.2 + 0.35 * wa; }
+    else if (rising) { a1 = 2.6 * (side > 0 ? 1 : 0.85); a2 = a1 + 0.3; }
+    else { a1 = 1.7 + Math.sin(time * 22 + side * 2) * (falling ? 0.5 : 0.15); a2 = a1 + 0.6; }
+    const ex = sx0 + Math.sin(a1) * 4.4 * f, ey = sy0 + Math.cos(a1) * 4.4;
+    const hx = ex + Math.sin(a2) * 4.2 * f, hy = ey + Math.cos(a2) * 4.2;
+    ctx.strokeStyle = ctx.fillStyle = front ? C.bone : C.boneShade;
+    bone(sx0, sy0, ex, ey, 1.9); bone(ex, ey, hx, hy, 1.7);
+    ctx.beginPath(); ctx.arc(hx, hy, 1.8, 0, 7); ctx.fill();
+  };
+  arm(-1, false);
+
+  // ---- pelvis, spine, ribs ----
+  ctx.save(); ctx.translate(cx, hipY); ctx.rotate(lean); ctx.scale(pop * P.sx, pop * P.sy);
+  ctx.fillStyle = C.bone; roundRect(-4.6, -1.6, 9.2, 3.6, 1.6); ctx.fill();
+  ctx.fillStyle = '#05060a'; ctx.beginPath(); ctx.arc(-1.8, 0.3, 0.8, 0, 7); ctx.arc(1.8, 0.3, 0.8, 0, 7); ctx.fill();
+  ctx.strokeStyle = C.bone; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, -1); ctx.quadraticCurveTo(-f * 1.2, -7, 0, -13); ctx.stroke();       // slightly curved spine
+  ctx.lineWidth = 1.6;
   for (let i = 0; i < 3; i++) {
-    const y = -5.5 - i * 2.8 + breathe * 0.2, w = 5.2 - Math.abs(i - 1) * 0.6;
-    ctx.beginPath(); ctx.moveTo(-w, y + 1.2); ctx.quadraticCurveTo(0, y - 2.4, w, y + 1.2); ctx.stroke();
+    const y = -5.4 - i * 2.6 + breathe * 0.25, w = 5 - Math.abs(i - 1) * 0.6;
+    ctx.beginPath(); ctx.moveTo(-w, y + 1.3); ctx.quadraticCurveTo(0, y - 2.4, w, y + 1.3); ctx.stroke();
   }
-  // skull
-  const sx = P.face * 0.8, sy = -20.5, jaw = falling ? 2.6 : rising ? 0.6 : 0;
-  ctx.fillStyle = C.bone; ctx.beginPath(); ctx.arc(sx, sy, 7.2, 0, 7); ctx.fill();
-  roundRect(sx - 4.6 + P.face * 0.6, sy + 3.5 + jaw, 9, 4, 1.5); ctx.fill();
+  ctx.restore();
+
+  // ---- skull: follows the neck with a little lag and wobble ----
+  const nodX = air ? 0 : Math.sin(ph * 2) * 0.7 * wa, nodY = air ? (rising ? 1.2 : -1) : Math.cos(ph * 2) * 0.9 * wa;
+  const hx0 = cx + Math.sin(lean) * 19 + nodX + f * 0.8, hy0 = hipY - 20.8 + nodY + breathe * 0.35;
+  const tilt = lean * 0.6 + (air ? 0 : Math.sin(ph * 2 + 0.6) * 0.08 * wa) + (idle ? Math.sin(time * 0.9) * 0.05 : 0);
+  ctx.save(); ctx.translate(hx0, hy0); ctx.rotate(tilt); ctx.scale(pop, pop);
+  const jaw = falling ? 2.8 : rising ? 0.6 : Math.max(0, Math.sin(ph * 4)) * 0.9 * wa;   // jaw rattles as he runs
+  ctx.fillStyle = C.bone; ctx.beginPath(); ctx.arc(0, 0, 7.2, 0, 7); ctx.fill();
+  roundRect(-4.4 + f * 0.7, 3.4 + jaw, 8.8, 4, 1.5); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.beginPath(); ctx.arc(-f * 2.5, 2, 5, 0, 7); ctx.fill();
   ctx.fillStyle = '#05060a';
-  const blink = (time % 3.4) < 0.1 ? 0.2 : 1, ex = sx + P.face * 1.3;
-  ctx.beginPath(); ctx.ellipse(ex - 2.8, sy - 0.2, 2.1, 2.5 * blink, 0, 0, 7); ctx.ellipse(ex + 2.8, sy - 0.2, 2.1, 2.5 * blink, 0, 0, 7); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(ex - 0.8, sy + 3.2); ctx.lineTo(ex + 0.8, sy + 3.2); ctx.lineTo(ex, sy + 1.8); ctx.closePath(); ctx.fill();
-  ctx.fillRect(sx - 3 + P.face * 0.6, sy + 5 + jaw, 6, 0.8);
-  for (let i = -2; i <= 2; i += 2) ctx.fillRect(sx + i + P.face * 0.6, sy + 4 + jaw, 0.7, 3);
-  if (blink > 0.5) {                                     // glowing pupils
-    ctx.fillStyle = 'rgba(141,255,196,.35)'; ctx.beginPath(); ctx.arc(ex - 2.6, sy, 2, 0, 7); ctx.arc(ex + 3, sy, 2, 0, 7); ctx.fill();
-    ctx.fillStyle = C.glow; ctx.beginPath(); ctx.arc(ex - 2.6 + P.face * 0.5, sy, 0.9, 0, 7); ctx.arc(ex + 3 + P.face * 0.5, sy, 0.9, 0, 7); ctx.fill();
+  const blink = (time % 3.4) < 0.1 ? 0.2 : 1, ex = f * 1.4 + (idle ? Math.sin(time * 0.7) * 0.8 : 0);
+  ctx.beginPath(); ctx.ellipse(ex - 2.8, -0.2, 2.1, 2.5 * blink, 0, 0, 7); ctx.ellipse(ex + 2.8, -0.2, 2.1, 2.5 * blink, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(ex - 0.8, 3.1); ctx.lineTo(ex + 0.8, 3.1); ctx.lineTo(ex, 1.7); ctx.closePath(); ctx.fill();
+  ctx.fillRect(-3 + f * 0.7, 4.9 + jaw, 6, 0.8);
+  for (let i = -2; i <= 2; i += 2) ctx.fillRect(i + f * 0.7, 3.9 + jaw, 0.7, 3);
+  if (blink > 0.5) {
+    ctx.fillStyle = 'rgba(141,255,196,.35)'; ctx.beginPath(); ctx.arc(ex - 2.6, 0, 2, 0, 7); ctx.arc(ex + 3, 0, 2, 0, 7); ctx.fill();
+    ctx.fillStyle = C.glow; ctx.beginPath(); ctx.arc(ex - 2.6 + f * 0.5, 0, 0.9, 0, 7); ctx.arc(ex + 3 + f * 0.5, 0, 0.9, 0, 7); ctx.fill();
   }
-  arm(P.face);
+  ctx.restore();
+
+  leg(1, true);
+  arm(1, true);
   ctx.restore();
 }
 
