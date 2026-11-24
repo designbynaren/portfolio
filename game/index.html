@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Trust Issues</title>
+<meta name="description" content="Trust Issues — a perfectly honest platformer. Nothing here will trick you.">
+<style>
+  :root{
+    --bg:#120e1f; --bg2:#231a40; --ink:#f3e9d2; --muted:#9a8fb8;
+    --accent:#ffd23f; --danger:#ff5a6a; --tile:#efe3c8; --panel:rgba(18,14,31,.86);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--ink);
+    font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  #stage{position:relative;width:min(100vw,calc(100vh * 16 / 9));width:min(100vw,calc(100dvh * 16 / 9));aspect-ratio:16/9;max-height:100%}
+  canvas{display:block;width:100%;height:100%}
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:clamp(8px,2.2vh,18px);background:var(--panel);text-align:center;padding:16px;backdrop-filter:blur(3px)}
+  .hidden{display:none!important}
+  .logo{font-weight:900;letter-spacing:.04em;line-height:.9;font-size:clamp(34px,9vw,92px)}
+  .logo span{display:block;color:var(--accent);transform:rotate(-3deg) translateX(.4em)}
+  .tag{color:var(--muted);font-size:clamp(13px,1.8vw,18px);max-width:36ch}
+  .fine{color:var(--muted);font-size:12px;opacity:.7}
+  .keys{color:var(--muted);font-size:clamp(11px,1.3vw,14px)}
+  .btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  button{font:inherit;font-weight:800;font-size:clamp(14px,1.8vw,18px);border:0;border-radius:14px;padding:.7em 1.6em;cursor:pointer;
+    background:var(--accent);color:#1a1300;box-shadow:0 4px 0 #b8901a;transition:transform .08s}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 #b8901a}
+  button.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--muted)}
+  button:disabled{opacity:.3;cursor:not-allowed}
+  h2{font-size:clamp(22px,4vw,40px);font-weight:900}
+  #grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:min(480px,90%)}
+  #grid button{padding:.8em 0;font-size:clamp(14px,2vw,20px)}
+  #grid small{display:block;font-weight:600;font-size:.6em;opacity:.75;margin-top:2px}
+  #hudBtns{position:absolute;top:1.4%;right:1%;display:flex;gap:6px}
+  #hudBtns button{padding:.35em .7em;font-size:clamp(12px,1.4vw,16px);border-radius:10px;background:rgba(255,255,255,.08);color:var(--ink);box-shadow:none}
+  #touch{position:fixed;left:0;right:0;bottom:0;display:none;justify-content:space-between;padding:12px 16px calc(12px + env(safe-area-inset-bottom));pointer-events:none}
+  #touch .pad{display:flex;gap:12px;pointer-events:auto}
+  #touch button{width:72px;height:72px;padding:0;border-radius:50%;font-size:28px;background:rgba(18,14,31,.55);color:var(--ink);box-shadow:none;border:2px solid rgba(243,233,210,.35)}
+  #touch button.on{background:rgba(255,210,63,.45)}
+  @media (pointer:coarse){ body.playing #touch{display:flex} }
+  a.home{color:var(--muted);font-size:13px}
+  #rotate{display:none;position:fixed;inset:0;z-index:5;background:var(--bg);color:var(--ink);align-items:center;justify-content:center;text-align:center;padding:24px;font-weight:800;font-size:20px;flex-direction:column;gap:8px}
+  #rotate span{font-size:48px;display:block}
+  @media (pointer:coarse) and (orientation:portrait){ #rotate{display:flex} }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage">
+    <canvas id="game" width="960" height="540" aria-label="Trust Issues game"></canvas>
+
+    <div id="hudBtns" class="hidden">
+      <button id="btnRestart" title="Restart (R)">↻</button>
+      <button id="btnMute" title="Mute (M)">♪</button>
+      <button id="btnPause" title="Menu (Esc)">☰</button>
+    </div>
+
+    <div id="menu" class="overlay">
+      <div class="logo">TRUST<span>ISSUES</span></div>
+      <p class="tag">A perfectly honest platformer. Walk to the door. Nothing here will trick you.*</p>
+      <div class="btns">
+        <button id="btnPlay">Play</button>
+        <button id="btnLevels" class="ghost">Levels</button>
+      </div>
+      <p class="keys">← → / A D move · Space / ↑ / W jump · R restart · Esc menu · M mute</p>
+      <p class="fine">*this is a lie</p>
+      <a class="home" href="../index.html">← back to portfolio</a>
+    </div>
+
+    <div id="levels" class="overlay hidden">
+      <h2>Pick a level</h2>
+      <div id="grid"></div>
+      <button id="btnBack" class="ghost">Back</button>
+    </div>
+
+    <div id="end" class="overlay hidden">
+      <h2>You trusted nothing.<br>And it worked.</h2>
+      <p class="tag" id="endStats"></p>
+      <div class="btns">
+        <button id="btnAgain">Play again</button>
+        <button id="btnMenu2" class="ghost">Menu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="rotate"><span>↻</span>Rotate your phone to landscape.<small style="color:var(--muted);font-weight:600;font-size:14px">The door is more trustworthy sideways.</small></div>
+
+<div id="touch">
+  <div class="pad">
+    <button data-k="left" aria-label="Left">◀</button>
+    <button data-k="right" aria-label="Right">▶</button>
+  </div>
+  <div class="pad">
+    <button data-k="jump" aria-label="Jump">▲</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- constants ---------- */
+const T = 30, COLS = 32, ROWS = 18, W = 960, H = 540;
+const PW = 20, PH = 24;
+const GRAV = 1900, JUMP = 640, SPEED = 230;
+const STEP = 1 / 120;
+const C = { bg1:'#120e1f', bg2:'#231a40', tile:'#efe3c8', tileTop:'#fffaf0', tileShade:'#cbbd9e',
+            spike:'#ff5a6a', player:'#ffd23f', eye:'#1a1300', door:'#ffd23f', ink:'#f3e9d2', muted:'#9a8fb8' };
+
+/* ---------- levels ----------
+   Map legend: '#' ground · 'a'-'h' ground in a trap group · '^' spike · 'v' ceiling spike
+               '1'-'9' hidden spikes (trap group) · 'P' start · 'D' door
+   Trap zone: x,w (+ optional y,h) in tiles — fires once when the player's centre enters it. */
+const LEVELS = [
+  { name:'Hello, Friend', hint:'Walk to the door. That\'s it. Promise.',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(12,15,14,17,'.'); b.fill(21,14,22,14,'1'); b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:19,w:1,do:'rise',g:'1'} ] },
+
+  { name:'Solid Ground', hint:'The floor is perfectly reliable.',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(10,15,13,17,'a'); b.fill(17,15,19,17,'b'); b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:11,w:2,do:'crumble',g:'a'}, {x:17,w:2,do:'crumble',g:'b'} ] },
+
+  { name:'Commitment', hint:'The door is right there.',
+    build(b){ b.fill(0,15,21,17,'#'); b.fill(25,15,31,17,'#'); b.fill(28,12,31,12,'#'); b.set(2,14,'P'); b.set(19,14,'D'); },
+    traps:[ {x:16,w:2,do:'door',tx:27,ty:14,speed:520}, {x:25,w:1,do:'door',tx:30,ty:11,speed:320} ] },
+
+  { name:'Heads Up', hint:'Low ceiling. Mind your head.',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(6,4,25,10,'#'); b.fill(12,11,14,12,'a'); b.fill(20,11,22,12,'b'); b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:11,w:1,do:'fall',g:'a'}, {x:19,w:1,do:'fall',g:'b',delay:0.45} ] },
+
+  { name:'Leap of Faith', hint:'Some paths only appear once you trust them.',
+    hidden:['b'], fake:['a'],
+    build(b){ b.fill(0,15,8,17,'#'); b.fill(23,15,31,17,'#'); b.fill(9,17,22,17,'^');
+              b.fill(13,14,14,14,'b'); b.fill(18,13,20,13,'b'); b.fill(26,15,27,17,'a');
+              b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[] },
+
+  { name:'Keep Moving', hint:'Whatever you do, don\'t stop.',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(15,15,16,17,'.'); b.fill(5,14,14,14,'1'); b.fill(17,14,25,14,'1');
+              b.fill(27,14,28,14,'2'); b.set(1,14,'P'); b.set(30,14,'D'); },
+    traps:[ {x:5,w:1,do:'rise',g:'1',delay:0.25,stagger:1/6.2}, {x:26,w:1,do:'rise',g:'2'} ] },
+
+  { name:'Going Up', hint:'Enjoy the ride.',
+    build(b){ b.fill(0,15,9,17,'#'); b.fill(12,14,14,14,'a'); b.fill(17,6,31,7,'#'); b.fill(24,6,26,7,'b');
+              b.fill(10,1,16,1,'v'); b.set(2,14,'P'); b.set(29,5,'D'); },
+    traps:[ {x:12,w:3,y:12,h:3,do:'move',g:'a',vx:0,vy:-3.5,dist:12}, {x:25,w:1,y:0,h:8,do:'crumble',g:'b'} ] },
+
+  { name:'The Last Door', hint:'Final level. No tricks. (Really.)',
+    build(b){ b.fill(0,15,31,17,'#'); b.fill(15,15,28,17,'c'); b.fill(24,12,28,12,'#');
+              b.set(2,14,'P'); b.set(29,14,'D'); },
+    traps:[ {x:16,w:1,do:'crumble',g:'c',stagger:1/6.8}, {x:27,w:1,do:'door',tx:25,ty:11,speed:360} ] },
+];
+
+const QUIPS = ['Totally fair.','That floor had plans.','Trust no tile.','Skill issue? Never.','The door says hi.',
+  'Character building.','Ouch. Again.','Nobody saw that.','Learning experience!','Classic.','It was right there.'];
+
+/* ---------- save ---------- */
+const SAVE_KEY = 'trust-issues-v1';
+let save = { unlocked: 1 };
+try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.unlocked) save.unlocked = Math.min(LEVELS.length, s.unlocked|0); } catch (e) {}
+const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+
+/* ---------- audio ---------- */
+let actx = null, muted = false;
+try { muted = localStorage.getItem(SAVE_KEY + '-mute') === '1'; } catch (e) {}
+function tone(f1, f2, dur, type = 'square', vol = 0.08, delay = 0) {
+  const t0 = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f1, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t0 + dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(actx.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function sfx(kind) {
+  if (muted) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+    switch (kind) {
+      case 'jump': tone(420, 760, 0.12, 'square', 0.05); break;
+      case 'die':  tone(320, 50, 0.35, 'sawtooth', 0.09); break;
+      case 'trap': tone(160, 60, 0.18, 'triangle', 0.12); break;
+      case 'thud': tone(90, 40, 0.2, 'triangle', 0.16); break;
+      case 'win':  [523, 659, 784, 1047].forEach((f, i) => tone(f, f, 0.14, 'square', 0.05, i * 0.08)); break;
+      case 'door': tone(600, 900, 0.1, 'sine', 0.06); tone(900, 600, 0.1, 'sine', 0.06, 0.1); break;
+    }
+  } catch (e) {}
+}
+
+/* ---------- input ---------- */
+const keys = { left:false, right:false, jump:false };
+let jumpPressed = false;
+const KEYMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump' };
+addEventListener('keydown', e => {
+  const k = KEYMAP[e.code];
+  if (k) { if (state === 'play' || state === 'dead' || state === 'win') e.preventDefault();
+           if (k === 'jump' && !keys.jump && !e.repeat) jumpPressed = true; keys[k] = true; return; }
+  if (e.code === 'KeyR' && isInGame()) restart(false);
+  else if (e.code === 'Escape') { if (isInGame()) showMenu(); else if (state === 'levels') showMenu(); }
+  else if (e.code === 'KeyM') toggleMute();
+  else if (e.code === 'Enter' && state === 'menu') startFrom(save.unlocked - 1);
+});
+addEventListener('keyup', e => { const k = KEYMAP[e.code]; if (k) keys[k] = false; });
+addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; });
+document.querySelectorAll('#touch button').forEach(btn => {
+  const k = btn.dataset.k;
+  const on = e => { e.preventDefault(); if (k === 'jump' && !keys.jump) jumpPressed = true; keys[k] = true; btn.classList.add('on'); };
+  const off = e => { e.preventDefault(); keys[k] = false; btn.classList.remove('on'); };
+  btn.addEventListener('pointerdown', on); btn.addEventListener('pointerup', off);
+  btn.addEventListener('pointercancel', off); btn.addEventListener('pointerleave', off);
+});
+
+/* ---------- canvas ---------- */
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+function resize() {
+  const r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+}
+addEventListener('resize', resize);
+
+/* ---------- world ---------- */
+let L = null, P = null, levelIndex = 0, state = 'menu', deaths = 0, levelDeaths = 0;
+let stateT = 0, quip = '', particles = [], shake = 0;
+const isInGame = () => state === 'play' || state === 'dead' || state === 'win';
+const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+
+function buildLevel(i) {
+  const def = LEVELS[i];
+  const g = Array.from({ length: ROWS }, () => Array(COLS).fill('.'));
+  const b = {
+    fill(x1, y1, x2, y2, c) { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) g[y][x] = c; },
+    set(x, y, c) { g[y][x] = c; },
+  };
+  def.build(b);
+  const lv = { def, tiles: [], spikes: [], door: null, start: null, groups: {}, t: 0,
+               traps: def.traps.map(t => ({ ...t, fired: false })) };
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = g[y][x];
+    if (c === '#' || /[a-h]/.test(c)) {
+      const grp = c === '#' ? null : c;
+      lv.tiles.push({ x: x * T, y: y * T, w: T, h: T, g: grp,
+        solid: !(grp && def.fake && def.fake.includes(grp)),
+        visible: !(grp && def.hidden && def.hidden.includes(grp)),
+        hiddenTile: !!(grp && def.hidden && def.hidden.includes(grp)),
+        vy: 0, crumbleAt: Infinity, falling: false });
+    } else if (c === '^' || c === 'v' || /[1-9]/.test(c)) {
+      const trap = /[1-9]/.test(c);
+      lv.spikes.push({ x: x * T, y: y * T, dir: c === 'v' ? 'down' : 'up', g: trap ? c : null, rise: trap ? 0 : 1, riseAt: Infinity, sounded: false });
+    } else if (c === 'P') lv.start = { x: x * T + (T - PW) / 2, y: (y + 1) * T - PH };
+    else if (c === 'D') lv.door = { x: x * T, y: (y + 1) * T - 45, w: T, h: 45, tx: null, ty: null, speed: 0 };
+  }
+  return lv;
+}
+
+function loadLevel(i) {
+  levelIndex = i; L = buildLevel(i);
+  P = { x: L.start.x, y: L.start.y, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1 };
+  jumpPressed = false; particles = []; shake = 0;
+}
+function restart(fromDeath) { if (!fromDeath) levelDeaths = levelDeaths; loadLevel(levelIndex); state = 'play'; }
+
+/* ---------- traps ---------- */
+function groupTiles(g) { return L.tiles.filter(t => t.g === g); }
+function fire(tr) {
+  const d = tr.delay || 0, st = tr.stagger || 0;
+  if (tr.do === 'rise') {
+    const sp = L.spikes.filter(s => s.g === tr.g), minX = Math.min(...sp.map(s => s.x));
+    sp.forEach(s => s.riseAt = L.t + d + ((s.x - minX) / T) * st);
+  } else if (tr.do === 'crumble') {
+    const ts = groupTiles(tr.g), minX = Math.min(...ts.map(t => t.x));
+    ts.forEach(t => t.crumbleAt = L.t + d + ((t.x - minX) / T) * st);
+    sfx('trap');
+  } else if (tr.do === 'fall') {
+    L.groups[tr.g] = { mode: 'fall', at: L.t + d, vy: 0 };
+  } else if (tr.do === 'move') {
+    L.groups[tr.g] = { mode: 'move', at: L.t + d, vx: tr.vx * T, vy: tr.vy * T, left: tr.dist * T };
+  } else if (tr.do === 'door') {
+    L.door.tx = tr.tx * T; L.door.ty = (tr.ty + 1) * T - 45; L.door.speed = tr.speed; sfx('door');
+  }
+}
+function updateTraps() {
+  const cx = (P.x + P.w / 2) / T, cy = (P.y + P.h / 2) / T;
+  for (const tr of L.traps) {
+    if (tr.fired) continue;
+    const y = tr.y ?? -99, h = tr.h ?? 999;
+    if (cx >= tr.x && cx < tr.x + tr.w && cy >= y && cy < y + h) { tr.fired = true; fire(tr); }
+  }
+}
+
+function standingOn(tiles) {
+  if (P.vy < 0) return false;
+  return tiles.some(t => t.solid && Math.abs(P.y + P.h - t.y) < 2.5 && P.x < t.x + t.w && P.x + P.w > t.x);
+}
+
+function updateWorld(dt) {
+  L.t += dt;
+  // moving / falling groups
+  for (const g in L.groups) {
+    const st = L.groups[g]; if (st.mode === 'done' || L.t < st.at) continue;
+    const ts = groupTiles(g); let dx = 0, dy = 0;
+    if (st.mode === 'fall') {
+      st.vy = Math.min(st.vy + GRAV * 1.2 * dt, 1200); dy = st.vy * dt;
+      let maxDy = dy;
+      for (const t of ts) for (const o of L.tiles) {
+        if (o.g === g || !o.solid || o.falling) continue;
+        if (t.x < o.x + o.w && t.x + t.w > o.x && o.y >= t.y + t.h - 0.01) maxDy = Math.min(maxDy, o.y - (t.y + t.h));
+      }
+      if (maxDy < dy) { dy = Math.max(0, maxDy); st.mode = 'done'; shake = 8; sfx('thud'); }
+    } else if (st.mode === 'move') {
+      const sp = Math.hypot(st.vx, st.vy), step = Math.min(st.left, sp * dt);
+      dx = st.vx / sp * step; dy = st.vy / sp * step; st.left -= step; if (st.left <= 0) st.mode = 'done';
+    }
+    if (dx || dy) {
+      const riding = state === 'play' && standingOn(ts);
+      ts.forEach(t => { t.x += dx; t.y += dy; });
+      if (riding) { P.x += dx; P.y += dy; }
+      if (state === 'play' && ts.some(t => t.solid && overlap(t, P))) die();
+    }
+  }
+  // crumbling tiles
+  for (const t of L.tiles) {
+    if (L.t >= t.crumbleAt && !t.falling) { t.falling = true; t.solid = false; }
+    if (t.falling) { t.vy = Math.min(t.vy + GRAV * dt, 1100); t.y += t.vy * dt; }
+  }
+  L.tiles = L.tiles.filter(t => t.y < H + 60);
+  // spikes
+  for (const s of L.spikes) if (L.t >= s.riseAt && s.rise < 1) {
+    if (!s.sounded) { s.sounded = true; sfx('trap'); }
+    s.rise = Math.min(1, s.rise + dt / 0.07);
+  }
+  // door
+  const D = L.door;
+  if (D.tx !== null) {
+    const ddx = D.tx - D.x, ddy = D.ty - D.y, dist = Math.hypot(ddx, ddy), st = D.speed * dt;
+    if (dist <= st) { D.x = D.tx; D.y = D.ty; D.tx = D.ty = null; } else { D.x += ddx / dist * st; D.y += ddy / dist * st; }
+  }
+}
+
+/* ---------- player ---------- */
+function solids() { return L.tiles.filter(t => t.solid); }
+function touch(t) { if (t.hiddenTile && !t.visible) { t.visible = true; burst(t.x + T / 2, t.y + 4, '#efe3c8', 6, 120); } }
+
+function updatePlayer(dt) {
+  const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+  if (dir) { P.vx += dir * (P.ground ? 2600 : 1800) * dt; P.vx = Math.max(-SPEED, Math.min(SPEED, P.vx)); P.face = dir; }
+  else { const f = (P.ground ? 3200 : 900) * dt; P.vx = Math.abs(P.vx) <= f ? 0 : P.vx - Math.sign(P.vx) * f; }
+
+  if (jumpPressed) { P.buffer = 0.12; jumpPressed = false; }
+  P.buffer -= dt; P.coyote = P.ground ? 0.09 : P.coyote - dt;
+  if (P.buffer > 0 && P.coyote > 0) {
+    P.vy = -JUMP; P.buffer = 0; P.coyote = 0; P.ground = false; P.sx = 0.75; P.sy = 1.3; sfx('jump');
+  }
+  let g = GRAV; if (P.vy < 0 && !keys.jump) g *= 2.4;
+  P.vy = Math.min(P.vy + g * dt, 950);
+
+  const S = solids();
+  P.x += P.vx * dt;
+  if (P.x < 0) { P.x = 0; P.vx = 0; } if (P.x + P.w > W) { P.x = W - P.w; P.vx = 0; }
+  for (const t of S) if (overlap(P, t)) {
+    if (P.vx > 0 || (P.vx === 0 && P.x + P.w / 2 < t.x + t.w / 2)) P.x = t.x - P.w; else P.x = t.x + t.w;
+    P.vx = 0; touch(t);
+  }
+  const wasGround = P.ground; P.ground = false;
+  P.y += P.vy * dt;
+  for (const t of S) if (overlap(P, t)) {
+    if (P.vy >= 0) { P.y = t.y - P.h; P.ground = true; if (!wasGround && P.vy > 300) { P.sx = 1.25; P.sy = 0.78; } }
+    else P.y = t.y + t.h;
+    P.vy = 0; touch(t);
+  }
+  P.sx += (1 - P.sx) * Math.min(1, dt * 14); P.sy += (1 - P.sy) * Math.min(1, dt * 14);
+
+  // hazards
+  if (P.y > H + 40) return die();
+  const hb = { x: P.x + 2, y: P.y + 2, w: P.w - 4, h: P.h - 2 };
+  for (const s of L.spikes) {
+    if (s.rise < 0.5) continue;
+    const box = s.dir === 'up' ? { x: s.x + 5, y: s.y + 14, w: 20, h: 16 } : { x: s.x + 5, y: s.y, w: 20, h: 14 };
+    if (overlap(hb, box)) return die();
+  }
+  // door
+  const D = L.door, cx = P.x + P.w / 2, cy = P.y + P.h / 2;
+  if (cx > D.x + 4 && cx < D.x + D.w - 4 && cy > D.y && cy < D.y + D.h) win();
+}
+
+function die() {
+  if (state !== 'play') return;
+  state = 'dead'; stateT = 0.9; deaths++; levelDeaths++;
+  quip = QUIPS[(Math.random() * QUIPS.length) | 0];
+  burst(P.x + P.w / 2, P.y + P.h / 2, C.player, 26, 380); burst(P.x + P.w / 2, P.y + P.h / 2, C.spike, 10, 260);
+  shake = 10; sfx('die');
+}
+function win() {
+  state = 'win'; stateT = 0.75; sfx('win');
+  burst(L.door.x + T / 2, L.door.y + 20, C.door, 30, 260);
+  if (levelIndex + 2 > save.unlocked) { save.unlocked = Math.min(LEVELS.length, levelIndex + 2); persist(); }
+}
+function nextLevel() {
+  if (levelIndex + 1 >= LEVELS.length) return showEnd();
+  levelDeaths = 0; loadLevel(levelIndex + 1); state = 'play';
+}
+
+function burst(x, y, color, n, sp) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, v = sp * (0.3 + Math.random() * 0.7);
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, life: 0.5 + Math.random() * 0.5, max: 1, s: 3 + Math.random() * 4, color });
+  }
+}
+
+/* ---------- loop ---------- */
+function update(dt) {
+  for (const p of particles) { p.vy += 1200 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+  particles = particles.filter(p => p.life > 0);
+  shake = Math.max(0, shake - dt * 40);
+  if (!L) return;
+  if (state === 'play') { updateTraps(); updateWorld(dt); if (state === 'play') updatePlayer(dt); }
+  else if (state === 'dead') { updateWorld(dt); stateT -= dt; if (stateT <= 0) restart(true); }
+  else if (state === 'win') { stateT -= dt; P.alpha = Math.max(0, stateT / 0.75);
+    P.x += ((L.door.x + (T - PW) / 2) - P.x) * Math.min(1, dt * 10); if (stateT <= 0) nextLevel(); }
+}
+
+let last = performance.now(), acc = 0, testMode = /[?&]test\b/.test(location.search);
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!testMode) { acc += dt; while (acc >= STEP) { update(STEP); acc -= STEP; } }
+  render(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- render ---------- */
+function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
+
+function render(time) {
+  ctx.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+  const grad = ctx.createLinearGradient(0, 0, 0, H); grad.addColorStop(0, C.bg2); grad.addColorStop(1, C.bg1);
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(255,255,255,.04)';
+  for (let y = T; y < H; y += T) for (let x = T; x < W; x += T) ctx.fillRect(x - 1, y - 1, 2, 2);
+  if (!L) return;
+
+  ctx.save();
+  if (shake > 0) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+
+  // hint text in the world
+  ctx.fillStyle = 'rgba(243,233,210,.55)'; ctx.font = '600 18px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(L.def.hint, W / 2, 96);
+
+  // door
+  const D = L.door, pulse = 0.5 + 0.5 * Math.sin(time * 4);
+  ctx.save(); ctx.shadowColor = C.door; ctx.shadowBlur = 12 + pulse * 10;
+  ctx.fillStyle = '#0b0816'; roundRect(D.x + 2, D.y, D.w - 4, D.h, 12); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = C.door; ctx.stroke(); ctx.restore();
+  ctx.fillStyle = C.door; ctx.beginPath(); ctx.arc(D.x + D.w - 9, D.y + D.h * 0.58, 2.5, 0, 7); ctx.fill();
+
+  // tiles
+  const occ = new Set();
+  for (const t of L.tiles) if (t.visible && !t.falling) occ.add(Math.round(t.x) + ',' + Math.round(t.y));
+  for (const t of L.tiles) {
+    if (!t.visible) continue;
+    let ox = 0, oy = 0;
+    const st = t.g && L.groups[t.g];
+    const shaking = (t.crumbleAt !== Infinity && !t.falling) || (st && L.t < st.at);
+    if (shaking) { ox = (Math.random() - .5) * 3; oy = (Math.random() - .5) * 2; }
+    if (t.hiddenTile) {
+      ctx.fillStyle = 'rgba(239,227,200,.22)'; ctx.fillRect(t.x + ox, t.y + oy, T, T);
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = C.tile; ctx.lineWidth = 2; ctx.strokeRect(t.x + 1, t.y + 1, T - 2, T - 2); ctx.setLineDash([]);
+      continue;
+    }
+    ctx.fillStyle = C.tile; ctx.fillRect(t.x + ox, t.y + oy, T + 0.5, T + 0.5);
+    if (!occ.has(Math.round(t.x) + ',' + Math.round(t.y - T)) || t.falling) {
+      ctx.fillStyle = C.tileTop; ctx.fillRect(t.x + ox, t.y + oy, T + 0.5, 4);
+    }
+    if (!occ.has(Math.round(t.x) + ',' + Math.round(t.y + T)) || t.falling) {
+      ctx.fillStyle = C.tileShade; ctx.fillRect(t.x + ox, t.y + oy + T - 4, T + 0.5, 4);
+    }
+  }
+
+  // spikes
+  ctx.fillStyle = C.spike;
+  for (const s of L.spikes) {
+    if (s.rise <= 0) continue;
+    ctx.save(); ctx.beginPath(); ctx.rect(s.x, s.y, T, T); ctx.clip();
+    const off = (1 - s.rise) * T;
+    ctx.beginPath();
+    for (let i = 0; i < 2; i++) {
+      const bx = s.x + i * 15;
+      if (s.dir === 'up') { ctx.moveTo(bx, s.y + T + off); ctx.lineTo(bx + 7.5, s.y + 8 + off); ctx.lineTo(bx + 15, s.y + T + off); }
+      else { ctx.moveTo(bx, s.y - off); ctx.lineTo(bx + 7.5, s.y + 22 - off); ctx.lineTo(bx + 15, s.y - off); }
+    }
+    ctx.fill(); ctx.restore();
+  }
+
+  // player
+  if (state !== 'dead') {
+    const cx = P.x + P.w / 2, by = P.y + P.h, w = (P.w + 4) * P.sx, h = (P.h + 2) * P.sy;
+    ctx.globalAlpha = P.alpha;
+    ctx.fillStyle = C.player; roundRect(cx - w / 2, by - h, w, h, 7); ctx.fill();
+    const blink = (time % 3.2) < 0.12 ? 0.15 : 1, ex = cx + P.face * 3.5, ey = by - h * 0.62;
+    ctx.fillStyle = C.eye;
+    ctx.beginPath(); ctx.ellipse(ex - 4.5, ey, 2.2, 3.4 * blink, 0, 0, 7); ctx.ellipse(ex + 4.5, ey, 2.2, 3.4 * blink, 0, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // particles
+  for (const p of particles) { ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2)); ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // HUD
+  if (isInGame()) {
+    ctx.textAlign = 'left'; ctx.fillStyle = C.ink; ctx.font = '800 20px ui-rounded,system-ui,sans-serif';
+    ctx.fillText(String(levelIndex + 1).padStart(2, '0') + ' — ' + L.def.name, 22, 36);
+    ctx.fillStyle = C.muted; ctx.font = '700 16px ui-rounded,system-ui,sans-serif';
+    ctx.fillText('☠ ' + deaths + '   ·   this level: ' + levelDeaths, 22, 60);
+  }
+  if (state === 'dead') {
+    ctx.textAlign = 'center'; ctx.fillStyle = C.spike; ctx.font = '900 40px ui-rounded,system-ui,sans-serif';
+    ctx.fillText(quip, W / 2, H / 2 - 40);
+  }
+}
+
+/* ---------- screens ---------- */
+const $ = id => document.getElementById(id);
+const screens = ['menu', 'levels', 'end'];
+function show(id) {
+  screens.forEach(s => $(s).classList.toggle('hidden', s !== id));
+  $('hudBtns').classList.toggle('hidden', !!id);
+  document.body.classList.toggle('playing', !id);
+}
+function showMenu() {
+  state = 'menu'; show('menu');
+  $('btnPlay').textContent = save.unlocked > 1 ? 'Continue · Level ' + save.unlocked : 'Play';
+}
+function showLevels() {
+  state = 'levels'; show('levels');
+  const grid = $('grid'); grid.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const b = document.createElement('button');
+    b.innerHTML = (i + 1) + '<small>' + (i < save.unlocked ? lv.name : 'locked') + '</small>';
+    b.className = i < save.unlocked ? '' : 'ghost'; b.disabled = i >= save.unlocked;
+    b.onclick = () => startFrom(i); grid.appendChild(b);
+  });
+}
+function showEnd() {
+  state = 'end'; show('end');
+  $('endStats').textContent = 'All ' + LEVELS.length + ' doors reached with ' + deaths + (deaths === 1 ? ' death' : ' deaths') + '. ' +
+    (deaths < 20 ? 'Suspiciously good.' : deaths < 60 ? 'Very reasonable.' : 'Totally fair game, right?');
+}
+function startFrom(i) { deaths = 0; levelDeaths = 0; loadLevel(i); state = 'play'; show(null); cv.focus && cv.focus(); }
+function toggleMute() {
+  muted = !muted; $('btnMute').textContent = muted ? '×' : '♪';
+  try { localStorage.setItem(SAVE_KEY + '-mute', muted ? '1' : '0'); } catch (e) {}
+}
+
+$('btnPlay').onclick = () => startFrom(save.unlocked - 1);
+$('btnLevels').onclick = showLevels;
+$('btnBack').onclick = showMenu;
+$('btnAgain').onclick = () => startFrom(0);
+$('btnMenu2').onclick = showMenu;
+$('btnRestart').onclick = e => { e.currentTarget.blur(); restart(false); };
+$('btnPause').onclick = showMenu;
+$('btnMute').onclick = e => { e.currentTarget.blur(); toggleMute(); };
+$('btnMute').textContent = muted ? '×' : '♪';
+
+loadLevel(0); showMenu(); resize(); requestAnimationFrame(frame);
+
+// hooks for automated tests (?test disables the real-time loop)
+window.__TI = { keys, get state() { return state; }, get P() { return P; }, get L() { return L; }, get level() { return levelIndex; },
+  press() { jumpPressed = true; }, step(n) { for (let i = 0; i < n; i++) update(STEP); }, start: startFrom, LEVELS };
+})();
+</script>
+</body>
+</html>
