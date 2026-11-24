@@ -89,6 +89,7 @@
     body.touch #touch .tip{display:block;width:100%;text-align:center;color:var(--muted);font-size:13px;order:3;margin-top:4px}
   }
   a.home{color:var(--muted);font-size:13px}
+  body.app a.home{display:none}
   body.touch .desk{display:none}
   body:not(.touch) .mob{display:none}
   body.touch #hudBtns button{min-width:42px;min-height:38px;font-size:16px}
@@ -1284,8 +1285,19 @@ $('btnRestart').onclick = e => { e.currentTarget.blur(); respawn(true); };
 $('btnPause').onclick = e => { e.currentTarget.blur(); pause(); };
 $('btnMute').onclick = e => { e.currentTarget.blur(); toggleMute(); };
 $('btnMute').textContent = muted ? '×' : '♪';
+const inApp = /[?&]app\b/.test(location.search);       // running inside the Android app
+if (inApp) document.body.classList.add('app');
+// Android back button: pause the game, step back through menus, or let the app close
+window.__appBack = () => {
+  if (isInGame()) { pause(); return; }
+  if (state === 'levels' || state === 'end') { showMenu(); return; }
+  if (state === 'complete') { showMenu(); return; }
+  if (state === 'menu' && paused) { resume(); return; }
+  try { window.AndroidApp && window.AndroidApp.exit(); } catch (e) {}
+};
+window.__appPause = () => { if (isInGame()) pause(); };
 const fsTarget = document.documentElement;
-if (isTouch && (fsTarget.requestFullscreen || fsTarget.webkitRequestFullscreen) && document.fullscreenEnabled !== false) {
+if (!inApp && isTouch && (fsTarget.requestFullscreen || fsTarget.webkitRequestFullscreen) && document.fullscreenEnabled !== false) {
   $('btnFull').classList.remove('hidden');
   $('btnFull').onclick = async e => {
     e.currentTarget.blur();
