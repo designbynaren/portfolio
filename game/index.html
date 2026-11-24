@@ -335,6 +335,20 @@ function sfx(kind) {
         noise(0.9, 4000, 300, 0.8, 0.09, 0, 'bandpass', 0.02); break;
       case 'giggle': for (let i = 0; i < 5; i++) { tone(780 + i * 25, 640, 0.09, 'triangle', 0.025, i * 0.11); noise(0.08, 2600, 2000, 4, 0.02, i * 0.11); } break;
       case 'murmur': for (let i = 0; i < 6; i++) noise(0.14, 900 + Math.random() * 1600, 700 + Math.random() * 900, 7, 0.035, i * 0.13 + Math.random() * 0.05, 'bandpass', 0.03); break;
+      case 'devour': {
+        tone(1100, 2400, 0.4, 'sawtooth', 0.04); tone(1120, 2450, 0.4, 'sawtooth', 0.03); noise(0.35, 300, 3000, 1, 0.08);       // lunge
+        noise(0.45, 2400, 180, 0.7, 0.12, 0.35, 'lowpass', 0.05); tone(420, 70, 0.42, 'sine', 0.08, 0.35);                     // suck in
+        for (const at of [0.6, 0.85]) {                                                                                       // two crunchy bites
+          noise(0.09, 1900, 900, 1, 0.3, at, 'bandpass', 0.003); tone(95, 38, 0.18, 'sine', 0.32, at); clack(5, 0.05, at + 0.01);
+        }
+        tone(320, 55, 0.3, 'sine', 0.22, 1.02); tone(160, 90, 0.12, 'sine', 0.1, 1.2);                                         // gulp
+        for (let i = 0; i < 7; i++) {                                                                                         // evil laugh
+          const at = 1.3 + i * 0.13, f = 330 - i * 14;
+          tone(f, f * 0.82, 0.11, 'sawtooth', 0.035, at); tone(f / 2, f * 0.4, 0.11, 'square', 0.02, at);
+          noise(0.1, 1000 - i * 40, 700, 5, 0.05, at, 'bandpass', 0.01);
+        }
+        tone(55, 28, 1.4, 'sine', 0.3, 2.05); noise(1.2, 400, 60, 0.7, 0.1, 2.05, 'lowpass', 0.02); break;                   // boom
+      }
       case 'whisper': noise(1.6, 1800, 900, 3, 0.05, 0, 'bandpass', 0.6); tone(466, 392, 1.4, 'sine', 0.025, 0.1); tone(440, 370, 1.4, 'sine', 0.025, 0.1); break;
       case 'beat': tone(62, 45, 0.16, 'sine', 0.22); tone(58, 42, 0.14, 'sine', 0.16, 0.2); break;
       case 'win':
@@ -419,7 +433,7 @@ addEventListener('keydown', e => {
   }
   if (k) { if (isInGame()) e.preventDefault();
            if (k === 'jump' && !keys.jump && !e.repeat) jumpPressed = true; keys[k] = true; return; }
-  if (e.code === 'KeyR' && isInGame()) respawn(true);
+  if (e.code === 'KeyR' && state === 'play') respawn(true);
   else if (e.code === 'Escape' || e.code === 'KeyP') { if (isInGame()) pause(); else if (state === 'levels' || state === 'menu') { if (paused) resume(); } }
   else if (e.code === 'KeyM') toggleMute();
   else if (e.code === 'Enter' && state === 'menu') { if (paused) resume(); else startFrom(save.unlocked - 1); }
@@ -504,7 +518,8 @@ function buildCaches() {
 let L = null, P = null, levelIndex = 0, state = 'menu', paused = false;
 let deaths = 0, levelDeaths = 0, levelTime = 0, cpIndex = -1;
 let stateT = 0, quip = '', particles = [], shake = 0, flash = 0;
-const isInGame = () => state === 'play' || state === 'dead' || state === 'win';
+const isInGame = () => state === 'play' || state === 'dead' || state === 'win' || state === 'eaten';
+const EAT_TIME = 2.6;
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 const doorAt = (cx, cy) => ({ x: px(cx), y: px(cy + 1) - 45, w: T, h: 45 });
 
@@ -683,15 +698,33 @@ function updateGhost(dt) {
   if (G.armed && d < 170 && state === 'play') { G.armed = false; G.scare = 1; sfx('shriek'); shake = Math.max(shake, 6); }
   if (d > 320) G.armed = true;
   G.scare = Math.max(0, G.scare - dt * 1.5);
-  if (state === 'play' && d < 17) { G.caught = true; die(); sfx('caught'); }
+  if (state === 'play' && d < 17) devour();
   if (state === 'play' && d < 260) { G.beat -= dt; if (G.beat <= 0) { G.beat = 0.35 + d / 260 * 0.6; sfx('beat'); } }
+}
+function devour() {
+  const G = L.ghost; G.caught = true;
+  state = 'eaten'; stateT = 0; deaths++; levelDeaths++; keys.left = keys.right = keys.jump = false;
+  G.eat = { px: P.x + P.w / 2, py: P.y + P.h / 2, gx: G.x, gy: G.y, bites: 0 };
+  sfx('devour'); buzz([60, 40, 140, 80, 140]);
+}
+function updateDevour(dt) {
+  const G = L.ghost, e = G.eat; stateT += dt;
+  const k = Math.min(1, stateT / 0.32), ease = k * k * (3 - 2 * k);           // lunge onto the skeleton
+  G.x = e.gx + (e.px - e.gx) * ease; G.y = e.gy + (e.py - 8 - e.gy) * ease;
+  for (const [i, at] of [[0, 0.6], [1, 0.85]]) if (e.bites === i && stateT >= at) {
+    e.bites++; shake = 12; flash = 0.6;
+    burst(G.x, G.y + 4, C.bone, 16, 330); if (i === 1) burst(G.x, G.y + 4, '#8a1020', 10, 240);
+  }
+  if (stateT >= EAT_TIME) respawn(false);
 }
 function drawGhost(time) {
   const G = L.ghost; if (!G || G.a <= 0) return;
   const d = G.dist ?? 900, near = Math.max(0, Math.min(1, 1 - (d - 30) / 300));
-  const face = P.x + P.w / 2 > G.x ? 1 : -1, sc = 1 + near * 0.28 + G.scare * 0.25;
-  const jit = near > 0.4 ? (Math.random() - 0.5) * 3 * near : 0;
-  const flick = Math.random() < 0.04 ? 0.35 : 1;                         // it glitches out now and then
+  const eating = state === 'eaten', et = eating ? stateT : 0;
+  let face = P.x + P.w / 2 > G.x ? 1 : -1, sc = 1 + near * 0.28 + G.scare * 0.25;
+  if (eating) { sc = 1.35 + 0.45 * Math.min(1, et / 0.32) + (et > 1.25 ? Math.abs(Math.sin(et * 24)) * 0.06 : 0); face = 1; }
+  const jit = state === 'eaten' ? 0 : near > 0.4 ? (Math.random() - 0.5) * 3 * near : 0;
+  const flick = state !== 'eaten' && Math.random() < 0.04 ? 0.35 : 1;                         // it glitches out now and then
   // afterimages
   for (let k = G.trail.length - 1; k >= 1; k -= 2) {
     const tp = G.trail[k]; ctx.globalAlpha = G.a * 0.09 * (1 - k / 8);
@@ -726,11 +759,16 @@ function drawGhost(time) {
   // hollow eyes with burning pupils
   ctx.fillStyle = '#020203';
   ctx.beginPath(); ctx.ellipse(-5, -10, 3.4, 5.4, -0.25, 0, 7); ctx.ellipse(6, -10, 3.4, 5.4, 0.25, 0, 7); ctx.fill();
-  const glow = 0.6 + 0.4 * Math.sin(time * 6) + near * 0.4;
+  const glow = eating && et > 1.0 ? 4 : 0.6 + 0.4 * Math.sin(time * 6) + near * 0.4;
   ctx.fillStyle = 'rgba(255,40,40,' + Math.min(1, 0.25 * glow) + ')'; ctx.beginPath(); ctx.arc(-4.4, -9, 3.2, 0, 7); ctx.arc(6.6, -9, 3.2, 0, 7); ctx.fill();
-  ctx.fillStyle = '#ff3b3b'; ctx.beginPath(); ctx.arc(-4.4, -9, 1.2, 0, 7); ctx.arc(6.6, -9, 1.2, 0, 7); ctx.fill();
+  const pr = eating && et > 1.0 ? 2 : 1.2; ctx.fillStyle = '#ff3b3b'; ctx.beginPath(); ctx.arc(-4.4, -9, pr, 0, 7); ctx.arc(6.6, -9, pr, 0, 7); ctx.fill();
   // gaping, jagged mouth that opens as it closes in
-  const mh = 5 + near * 11 + G.scare * 6 + Math.sin(time * 9) * 1.2, mw = 4.2 + near * 2;
+  let mh = 5 + near * 11 + G.scare * 6 + Math.sin(time * 9) * 1.2, mw = 4.2 + near * 2;
+  if (eating) {
+    const chomp = (a) => Math.max(0, 1 - Math.abs(et - a) / 0.07);          // jaws slam shut at each bite
+    mh = et < 1.0 ? 22 - 19 * Math.max(chomp(0.6), chomp(0.85)) : 7 + Math.abs(Math.sin(et * 24)) * 6;
+    mw = et < 1.0 ? 8 : 6.5;
+  }
   ctx.fillStyle = '#020203'; ctx.beginPath(); ctx.moveTo(1 - mw, -2);
   for (let k = 0; k <= 6; k++) { const t2 = k / 6; ctx.lineTo(1 - mw + t2 * mw * 2, -2 + (k % 2 ? 1.6 : 0)); }
   ctx.quadraticCurveTo(1 + mw + 1, -2 + mh * 0.6, 1, -2 + mh); ctx.quadraticCurveTo(1 - mw - 1, -2 + mh * 0.6, 1 - mw, -2); ctx.fill();
@@ -835,7 +873,8 @@ function update(dt) {
   if (isInGame()) ambientTick(dt);
   if (L) ghostAudio(dt);
   if (!L || paused) return;
-  if (state === 'play' || state === 'dead') levelTime += dt;
+  if (state === 'play' || state === 'dead' || state === 'eaten') levelTime += dt;
+  if (state === 'eaten') updateDevour(dt);
   if (state === 'play') { updateTraps(); updateWorld(dt); if (state === 'play') updatePlayer(dt); }
   else if (state === 'dead') { updateWorld(dt); stateT -= dt; if (stateT <= 0) respawn(false); }
   else if (state === 'win') { stateT -= dt; P.alpha = Math.max(0, stateT / 0.8);
@@ -943,6 +982,12 @@ function render(time) {
 
   ctx.save();
   if (shake > 0) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+  let eatPivot = null;
+  if (state === 'eaten' && L.ghost) {
+    const zk = Math.min(1, stateT / 0.4), z = 1 + 0.9 * zk * zk * (3 - 2 * zk);
+    eatPivot = { x: L.ghost.x - cam, y: L.ghost.y };
+    ctx.translate(eatPivot.x, eatPivot.y); ctx.scale(z, z); ctx.translate(-eatPivot.x, -eatPivot.y);
+  }
   ctx.translate(-Math.round(cam), 0);
   const c1 = Math.max(0, Math.floor(cam / T) - 1), c2 = Math.min(L.cols - 1, Math.floor((cam + W) / T) + 1);
 
@@ -975,8 +1020,16 @@ function render(time) {
     ctx.fillStyle = '#05060a'; ctx.beginPath(); ctx.arc(-2, -1, 1.4, 0, 7); ctx.arc(2, -1, 1.4, 0, 7); ctx.fill(); ctx.restore();
   }
 
-  if (state !== 'dead') drawPlayer(time);
+  if (state !== 'dead' && state !== 'eaten') drawPlayer(time);
   drawGhost(time);
+  if (state === 'eaten') {
+    const u = Math.max(0, Math.min(1, (stateT - 0.32) / 0.4));               // pulled into the mouth, spinning and shrinking
+    if (u < 1) {
+      const G = L.ghost, e = G.eat, mx = G.x + 2, my = G.y + 4;
+      ctx.save(); ctx.translate(e.px + (mx - e.px) * u, e.py + (my - e.py) * u); ctx.rotate(u * u * 7); ctx.scale(1 - u * 0.85, 1 - u * 0.85);
+      ctx.translate(-(P.x + P.w / 2), -(P.y + P.h / 2)); drawPlayer(time); ctx.restore();
+    }
+  }
   if (L.reverse && state === 'play') {
     ctx.fillStyle = '#b9a8ff'; ctx.font = '800 16px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('⇄', P.x + P.w / 2, P.y - 14);
@@ -994,9 +1047,10 @@ function render(time) {
   }
   if (fogCache) { const fo = (time * 14 + cam * 0.6) % W; ctx.globalAlpha = 0.75; ctx.drawImage(fogCache, -fo, H - 190, W, 180); ctx.drawImage(fogCache, W - fo, H - 190, W, 180); ctx.globalAlpha = 1; }
   if (flash > 0) { ctx.fillStyle = 'rgba(150,0,15,' + (flash * 0.35) + ')'; ctx.fillRect(0, 0, W, H); }
+  if (state === 'eaten') drawDevourOverlay(time);
 
   // HUD: level number + name, a thin progress bar, and the hint on the first try
-  if (isInGame() || state === 'complete') {
+  if ((isInGame() && state !== 'eaten') || state === 'complete') {
     ctx.textAlign = 'left'; ctx.font = '700 13px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.muted;
     ctx.fillText('LEVEL ' + (levelIndex + 1), 22, 30);
     ctx.font = '800 20px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.ink;
@@ -1017,6 +1071,25 @@ function render(time) {
   }
 }
 
+function drawDevourOverlay(time) {
+  const t = stateT, G = L.ghost, cx = G.x - L.cam, cy = G.y;
+  ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.55, t * 1.6) + ')'; ctx.fillRect(0, 0, W, H);
+  if (t > 1.35) {                                                            // the world closes in around its face
+    const r = Math.max(0, 640 * (1 - (t - 1.35) / 0.6));
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.moveTo(cx + r, cy); ctx.arc(cx, cy, r, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    if (r > 0) { ctx.strokeStyle = 'rgba(200,20,35,.6)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke(); }
+  }
+  if (t > 1.95) {
+    const a = Math.min(1, (t - 1.95) * 4) * (Math.random() < 0.08 ? 0.4 : 1);
+    ctx.globalAlpha = a; ctx.textAlign = 'center';
+    ctx.fillStyle = '#c8202f'; ctx.font = '900 64px ui-rounded,system-ui,sans-serif';
+    ctx.fillText('DEVOURED', W / 2 + (Math.random() - 0.5) * 3, H / 2 + 10);
+    ctx.fillStyle = 'rgba(200,32,47,.5)';
+    for (let i = 0; i < 6; i++) { const dx = W / 2 - 150 + i * 58 + (i * 37) % 23, len = 8 + ((t - 1.95) * 60 * (0.5 + (i % 3) * 0.3)); ctx.fillRect(dx, H / 2 + 14, 3, len); }
+    ctx.fillStyle = C.muted; ctx.font = '600 15px ui-rounded,system-ui,sans-serif'; ctx.fillText('it was right behind you', W / 2, H / 2 + 60);
+    ctx.globalAlpha = 1;
+  }
+}
 function drawPlayer(time) {
   const cx = P.x + P.w / 2, by = P.y + P.h, air = !P.ground;
   const rising = air && P.vy < -60, falling = air && P.vy > 140;
