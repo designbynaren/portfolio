@@ -15,7 +15,7 @@
     font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
   #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-  #stage{position:relative;width:min(100vw,calc(100vh * 16 / 9));width:min(100vw,calc(100dvh * 16 / 9));aspect-ratio:16/9;max-height:100%}
+  #stage{position:relative;width:min(100%,calc(100vh * 16 / 9));aspect-ratio:16/9;max-width:100%;max-height:100%;overflow:hidden}
   canvas{display:block;width:100%;height:100%}
   .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
     gap:clamp(8px,2.2vh,18px);background:var(--panel);text-align:center;padding:16px;backdrop-filter:blur(4px)}
@@ -230,7 +230,8 @@ const SECTIONS = {
   },
   wall(b, ox) { b.ground(ox, ox + 8); b.tiles(ox + 5, 13, ox + 5, 14); b.meta.jumps.push([px(ox + 5) - 62, px(ox + 5) - 48]); return 9; },
   lowCeil(b, ox) {                    // ceiling spikes over a small gap: only a short hop survives
-    b.ground(ox, ox + 11); b.tiles(ox + 3, 11, ox + 8, 11); b.spikes(ox + 3, ox + 8, 12, { dir: 'down' }); b.gap(ox + 5, ox + 6);
+    b.ground(ox, ox + 11); b.tiles(ox + 3, 10, ox + 8, 10); b.spikes(ox + 3, ox + 8, 11, { dir: 'down' }); b.gap(ox + 5, ox + 6);
+    b.labels.push({ x: px(ox + 2), y: px(15) - 52, text: 'tap jump = small hop' });
     b.meta.taps.push([px(ox + 5) - 25, px(ox + 5) - 10]); return 12;
   },
   // endings
@@ -395,7 +396,16 @@ document.querySelectorAll('#touch button').forEach(btn => {
 const cv = document.getElementById('game'), ctx = cv.getContext('2d', { alpha: false });
 let SCALE = 1, bgCache = null, glowCache = null, fogCache = null, fearCache = null;
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function fitStage() {
+  const wrap = document.getElementById('wrap'), st = document.getElementById('stage');
+  const cs = getComputedStyle(wrap);
+  const aw = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const ah = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  let w = aw, h = w * 9 / 16; if (h > ah) { h = ah; w = h * 16 / 9; }
+  st.style.width = Math.floor(w) + 'px'; st.style.height = Math.floor(h) + 'px';
+}
 function resize() {
+  fitStage();
   const r = cv.getBoundingClientRect();
   let dpr = Math.min(window.devicePixelRatio || 1, 2);
   if (r.width * dpr > 1920) dpr = 1920 / Math.max(1, r.width);          // keep the pixel count sane on big screens
@@ -403,6 +413,7 @@ function resize() {
   SCALE = cv.width / W; buildCaches();
 }
 addEventListener('resize', resize);
+try { new ResizeObserver(() => resize()).observe(document.getElementById('wrap')); } catch (e) {}
 
 const BG = (() => {
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -460,7 +471,7 @@ function buildLevel(i) {
   const cells = new Map(); let gid = 0, maxX = 0;
   const key = (x, y) => x * ROWS + y;
   const b = {
-    start: null, door: null, flags: [], fakes: [], traps: [], meta: { jumps: [], taps: [], baits: [] },
+    start: null, door: null, flags: [], fakes: [], labels: [], traps: [], meta: { jumps: [], taps: [], baits: [] },
     put(x, y, o) { cells.set(key(x, y), o); if (x + 1 > maxX) maxX = x + 1; },
     clear(x1, y1, x2, y2) { for (let x = x1; x <= x2; x++) for (let y = y1; y <= y2; y++) cells.delete(key(x, y)); },
     ground(x1, x2) { for (let x = x1; x <= x2; x++) for (let y = 15; y < ROWS; y++) b.put(x, y, { k: 't' }); },
@@ -479,7 +490,7 @@ function buildLevel(i) {
   const cols = maxX;
   const lv = { def, cols, W: cols * T, cam: 0, t: 0, reverse: false, chomp: null,
     grid: new Array(cols * ROWS).fill(null), dyn: [], groups: {}, groupTiles: {}, spikeCols: Array.from({ length: cols }, () => []),
-    spikes: [], rising: [], balls: [], fakes: b.fakes, flags: b.flags, door: b.door, start: b.start, meta: b.meta,
+    spikes: [], rising: [], balls: [], labels: b.labels, fakes: b.fakes, flags: b.flags, door: b.door, start: b.start, meta: b.meta,
     traps: b.traps.map(t => ({ ...t, fired: false })) };
   for (const [k, c] of cells) {
     const x = Math.floor(k / ROWS), y = k % ROWS;
@@ -852,6 +863,12 @@ function render(time) {
   const c1 = Math.max(0, Math.floor(cam / T) - 1), c2 = Math.min(L.cols - 1, Math.floor((cam + W) / T) + 1);
 
   for (const f of L.flags) if (f.x > cam - 40 && f.x < cam + W + 40) drawFlag(f, time);
+  if (levelIndex < 3) {
+    ctx.font = '700 13px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
+    for (const lb of L.labels) if (lb.x > cam - 120 && lb.x < cam + W + 120) {
+      ctx.fillStyle = 'rgba(141,255,196,.75)'; ctx.fillText(lb.text, lb.x, lb.y); ctx.fillText('▲', lb.x, lb.y + 16);
+    }
+  }
   if (!L.door.hidden) drawDoor(L.door, time, false);
   for (const f of L.fakes) drawDoor(f, time, L.chomp === f && state === 'dead');
 
