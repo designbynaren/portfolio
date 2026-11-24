@@ -110,7 +110,7 @@ const PW = 20, PH = 24;
 const GRAV = 1900, JUMP = 640, SPEED = 230;
 const STEP = 1 / 120;
 const C = { bg1:'#120e1f', bg2:'#231a40', tile:'#efe3c8', tileTop:'#fffaf0', tileShade:'#cbbd9e',
-            spike:'#ff5a6a', player:'#ffd23f', eye:'#1a1300', door:'#ffd23f', ink:'#f3e9d2', muted:'#9a8fb8' };
+            spike:'#ff5a6a', player:'#ffd23f', limb:'#f0b400', shoe:'#ff7a59', eye:'#1a1300', door:'#ffd23f', ink:'#f3e9d2', muted:'#9a8fb8' };
 
 /* ---------- levels ----------
    Map legend: '#' ground · 'a'-'h' ground in a trap group · '^' spike · 'v' ceiling spike
@@ -257,7 +257,7 @@ function buildLevel(i) {
 
 function loadLevel(i) {
   levelIndex = i; L = buildLevel(i);
-  P = { x: L.start.x, y: L.start.y, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1 };
+  P = { x: L.start.x, y: L.start.y, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1, walk: 0, walkAmt: 0, dustT: 0 };
   jumpPressed = false; particles = []; shake = 0;
 }
 function restart(fromDeath) { if (!fromDeath) levelDeaths = levelDeaths; loadLevel(levelIndex); state = 'play'; }
@@ -351,7 +351,7 @@ function updatePlayer(dt) {
   if (jumpPressed) { P.buffer = 0.12; jumpPressed = false; }
   P.buffer -= dt; P.coyote = P.ground ? 0.09 : P.coyote - dt;
   if (P.buffer > 0 && P.coyote > 0) {
-    P.vy = -JUMP; P.buffer = 0; P.coyote = 0; P.ground = false; P.sx = 0.75; P.sy = 1.3; sfx('jump');
+    P.vy = -JUMP; P.buffer = 0; P.coyote = 0; P.ground = false; P.sx = 0.75; P.sy = 1.3; sfx('jump'); dust(P.x + P.w / 2, P.y + P.h, 6, 0);
   }
   let g = GRAV; if (P.vy < 0 && !keys.jump) g *= 2.4;
   P.vy = Math.min(P.vy + g * dt, 950);
@@ -366,9 +366,16 @@ function updatePlayer(dt) {
   const wasGround = P.ground; P.ground = false;
   P.y += P.vy * dt;
   for (const t of S) if (overlap(P, t)) {
-    if (P.vy >= 0) { P.y = t.y - P.h; P.ground = true; if (!wasGround && P.vy > 300) { P.sx = 1.25; P.sy = 0.78; } }
+    if (P.vy >= 0) { P.y = t.y - P.h; P.ground = true; if (!wasGround && P.vy > 300) { P.sx = 1.25; P.sy = 0.78; dust(P.x + P.w / 2, t.y, 8, 0); } }
     else P.y = t.y + t.h;
     P.vy = 0; touch(t);
+  }
+  const moving = P.ground ? Math.min(1, Math.abs(P.vx) / SPEED) : 0;
+  P.walkAmt += (moving - P.walkAmt) * Math.min(1, dt * 12);
+  if (P.ground) {
+    P.walk += Math.abs(P.vx) * dt * 0.085;
+    P.dustT -= dt;
+    if (Math.abs(P.vx) > 160 && P.dustT <= 0) { P.dustT = 0.13; dust(P.x + P.w / 2 - P.face * 6, P.y + P.h, 1, -P.face); }
   }
   P.sx += (1 - P.sx) * Math.min(1, dt * 14); P.sy += (1 - P.sy) * Math.min(1, dt * 14);
 
@@ -402,6 +409,13 @@ function nextLevel() {
   levelDeaths = 0; loadLevel(levelIndex + 1); state = 'play';
 }
 
+function dust(x, y, n, dir) {
+  for (let i = 0; i < n; i++) {
+    const side = dir || (i % 2 ? 1 : -1);
+    particles.push({ x: x + (Math.random() - .5) * 8, y: y - 2, vx: side * (30 + Math.random() * 70), vy: -(15 + Math.random() * 45),
+      life: 0.3 + Math.random() * 0.25, s: 3 + Math.random() * 4, color: 'rgba(239,227,200,.55)', g: 60, drag: 0.97, round: true });
+  }
+}
 function burst(x, y, color, n, sp) {
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, v = sp * (0.3 + Math.random() * 0.7);
@@ -411,7 +425,7 @@ function burst(x, y, color, n, sp) {
 
 /* ---------- loop ---------- */
 function update(dt) {
-  for (const p of particles) { p.vy += 1200 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+  for (const p of particles) { p.vy += (p.g ?? 1200) * dt; p.vx *= p.drag ?? 1; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
   particles = particles.filter(p => p.life > 0);
   shake = Math.max(0, shake - dt * 40);
   if (!L) return;
@@ -493,18 +507,10 @@ function render(time) {
   }
 
   // player
-  if (state !== 'dead') {
-    const cx = P.x + P.w / 2, by = P.y + P.h, w = (P.w + 4) * P.sx, h = (P.h + 2) * P.sy;
-    ctx.globalAlpha = P.alpha;
-    ctx.fillStyle = C.player; roundRect(cx - w / 2, by - h, w, h, 7); ctx.fill();
-    const blink = (time % 3.2) < 0.12 ? 0.15 : 1, ex = cx + P.face * 3.5, ey = by - h * 0.62;
-    ctx.fillStyle = C.eye;
-    ctx.beginPath(); ctx.ellipse(ex - 4.5, ey, 2.2, 3.4 * blink, 0, 0, 7); ctx.ellipse(ex + 4.5, ey, 2.2, 3.4 * blink, 0, 0, 7); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
+  if (state !== 'dead') drawPlayer(time);
 
   // particles
-  for (const p of particles) { ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2)); ctx.fillStyle = p.color; ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
+  for (const p of particles) { ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2)); ctx.fillStyle = p.color; if (p.round) { ctx.beginPath(); ctx.arc(p.x, p.y, p.s / 2, 0, 7); ctx.fill(); } else ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s); }
   ctx.globalAlpha = 1;
   ctx.restore();
 
@@ -519,6 +525,70 @@ function render(time) {
     ctx.textAlign = 'center'; ctx.fillStyle = C.spike; ctx.font = '900 40px ui-rounded,system-ui,sans-serif';
     ctx.fillText(quip, W / 2, H / 2 - 40);
   }
+}
+
+function drawPlayer(time) {
+  const cx = P.x + P.w / 2, by = P.y + P.h, air = !P.ground;
+  const rising = air && P.vy < -60, falling = air && P.vy > 140;
+  const sw = Math.sin(P.walk) * 0.8 * P.walkAmt;              // leg swing
+  const breathe = (!air && P.walkAmt < 0.1) ? Math.sin(time * 3) : 0;
+  const LEG = 7, hipY = by - LEG + (1 - Math.min(1, P.sy)) * 5;
+  const bw = 22 * P.sx, bh = (17 + breathe * 0.6) * P.sy;
+  const bob = !air ? Math.abs(Math.sin(P.walk)) * -1.6 * P.walkAmt : 0;
+  const lean = (P.vx / SPEED) * (air ? 0.08 : 0.15);
+  ctx.save(); ctx.globalAlpha = P.alpha; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // soft shadow on the ground
+  if (!air) { ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(cx, by + 1, 11, 2.5, 0, 0, 7); ctx.fill(); }
+
+  // legs + shoes
+  for (const s of [-1, 1]) {
+    const hx = cx + s * 4.5, hy = hipY + bob;
+    let fx, fy;
+    if (!air) {
+      const a = sw * s;
+      fx = hx + Math.sin(a) * LEG;
+      fy = by - Math.max(0, Math.cos(P.walk + (s > 0 ? 0 : Math.PI))) * 3.2 * P.walkAmt;
+      if (P.walkAmt < 0.05) fx = hx + s * 0.8;
+    } else if (rising) { fx = hx + s * 1.2 - P.face * 2; fy = hy + LEG * 0.55; }
+    else { fx = hx + s * 3.2 + Math.sin(time * 18 + s) * (falling ? 1.2 : 0); fy = hy + LEG * 0.95; }
+    ctx.strokeStyle = C.limb; ctx.lineWidth = 3.4;
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(fx, fy); ctx.stroke();
+    ctx.fillStyle = C.shoe; ctx.beginPath(); ctx.ellipse(fx + P.face * 1.3, fy, 3.2, 2.1, 0, 0, 7); ctx.fill();
+  }
+
+  // body (rotated with lean)
+  ctx.translate(cx, hipY + bob + 1); ctx.rotate(lean);
+  const arm = (s) => {
+    let th;                                                    // angle from straight down
+    if (!air) th = -sw * s * 0.8 + s * (0.25 + breathe * 0.05);
+    else if (rising) th = s * 2.55;
+    else th = s * (1.75 + Math.sin(time * 24 + s * 2) * (falling ? 0.45 : 0.15));
+    const sx0 = s * (bw / 2 - 1.5), sy0 = -bh * 0.48, len = 7.5;
+    const hx = sx0 + Math.sin(th) * len * s * s, hy = sy0 + Math.cos(th) * len;
+    ctx.strokeStyle = C.limb; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(sx0, sy0); ctx.lineTo(hx, hy); ctx.stroke();
+    ctx.fillStyle = C.player; ctx.beginPath(); ctx.arc(hx, hy, 2.3, 0, 7); ctx.fill();
+  };
+  arm(-P.face);                                                // back arm behind the body
+  ctx.fillStyle = C.player; roundRect(-bw / 2, -bh, bw, bh, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.35)'; roundRect(-bw / 2 + 3, -bh + 2.5, bw * 0.35, 3, 1.5); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.10)'; roundRect(-bw / 2, -4, bw, 4, 2); ctx.fill();
+
+  // face
+  const blink = (time % 3.2) < 0.12 ? 0.15 : 1, ex = P.face * 3, ey = -bh * 0.62;
+  ctx.fillStyle = C.eye;
+  ctx.beginPath(); ctx.ellipse(ex - 4.2, ey, 2.1, 3.2 * blink, 0, 0, 7); ctx.ellipse(ex + 4.2, ey, 2.1, 3.2 * blink, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(ex - 3.6, ey - 1.2, 0.8, 0, 7); ctx.arc(ex + 4.8, ey - 1.2, 0.8, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,120,110,.45)';
+  ctx.beginPath(); ctx.arc(ex - 6.3, ey + 3.6, 1.7, 0, 7); ctx.arc(ex + 6.3, ey + 3.6, 1.7, 0, 7); ctx.fill();
+  ctx.strokeStyle = C.eye; ctx.fillStyle = C.eye; ctx.lineWidth = 1.4;
+  if (falling) { ctx.beginPath(); ctx.ellipse(ex, ey + 4.6, 1.6, 2, 0, 0, 7); ctx.fill(); }
+  else if (!rising) { ctx.beginPath(); ctx.arc(ex, ey + 2.8, 2.2, 0.2, Math.PI - 0.2); ctx.stroke(); }
+
+  arm(P.face);                                                 // front arm over the body
+  ctx.restore();
 }
 
 /* ---------- screens ---------- */
