@@ -59,6 +59,21 @@
     border:1px solid var(--line);box-shadow:none;display:flex;align-items:center;justify-content:center;gap:8px}
   button.mini:hover{color:var(--ink);border-color:var(--muted)}
   button.mini svg{width:16px;height:16px}
+  .relic-card .relic-icon{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;color:var(--ghost);
+    background:radial-gradient(circle,rgba(141,255,196,.22),rgba(141,255,196,0) 70%);box-shadow:0 0 40px rgba(141,255,196,.25);animation:relicPulse 2s ease-in-out infinite}
+  .relic-card .relic-icon svg{width:52px;height:52px;filter:drop-shadow(0 0 8px rgba(141,255,196,.7))}
+  @keyframes relicPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .relic-card .tag{text-align:center;max-width:34ch}
+  .relic-how{font-size:14px;font-weight:700;color:var(--ink);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:8px 12px;text-align:center}
+  #relicList{display:flex;flex-direction:column;gap:10px;width:min(460px,92%)}
+  .relic-row{display:flex;align-items:center;gap:14px;text-align:left;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+  .relic-row .ri{flex:none;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;background:rgba(141,255,196,.1);color:var(--ghost)}
+  .relic-row .ri svg{width:32px;height:32px}
+  .relic-row.locked{opacity:.5}
+  .relic-row.locked .ri{background:rgba(255,255,255,.05);color:var(--muted)}
+  .relic-row b{display:block;font-size:17px}
+  .relic-row span{display:block;font-size:13px;color:var(--muted);line-height:1.4}
+  @media (prefers-reduced-motion:reduce){.relic-card .relic-icon{animation:none}}
   #helpPanel{font-size:13px;color:var(--muted);line-height:1.5;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
   #menu a.home{position:absolute;left:max(24px,env(safe-area-inset-left));bottom:12px}
   @media (orientation:portrait) and (max-width:700px){
@@ -135,6 +150,10 @@
   #touch .tbtn.ripple::after{animation:ring .38s ease-out}
   @keyframes ring{from{transform:scale(1);border-color:rgba(255,110,120,.85)}to{transform:scale(1.5);border-color:rgba(255,110,120,0)}}
   #touch .tbtn.jump{width:90px;height:90px}
+  #touch .tbtn.blade{display:none;width:64px;height:64px;margin-bottom:34px;touch-action:none}
+  body.has-blade #touch .tbtn.blade{display:grid}
+  #touch .tbtn.blade svg{width:46%;height:46%}
+  #actPad{align-items:flex-end}
   #touch .tbtn.jump svg{width:48%;height:48%}
   #touch .pad{gap:14px}
   #touch .tip{display:none}
@@ -144,6 +163,7 @@
       padding:0 max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
     body.touch #touch .tbtn{width:72px;height:72px;opacity:.9}
     body.touch #touch .tbtn.jump{width:88px;height:88px}
+    body.touch #touch .tbtn.blade{width:62px;height:62px}
   }
   /* portrait phones: the game sits on top, controls get their own panel underneath */
   @media (orientation:portrait){
@@ -200,13 +220,14 @@
         <button id="btnContinue" class="mbtn primary hidden"><span class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></span><span class="ml"><b>Continue</b><small id="contSub"></small></span></button>
         <button id="btnPlay" class="mbtn"><span class="mi" id="playIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z" fill="currentColor"/></svg></span><span class="ml"><b id="playLabel">New game</b><small id="playSub">Start from level 1</small></span></button>
         <button id="btnLevels" class="mbtn"><span class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z" fill="currentColor"/></svg></span><span class="ml"><b>Levels</b><small id="levelsSub"></small></span></button>
+        <button id="btnRelics" class="mbtn"><span class="mi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.6 6.6L21 9.3l-5 4.4 1.6 6.8L12 17l-5.6 3.5L8 13.7 3 9.3l6.4-.7z" fill="currentColor"/></svg></span><span class="ml"><b>Relics</b><small id="relicsSub"></small></span></button>
         <div class="home-row">
           <button id="btnSound" class="mini"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4z" fill="currentColor"/></svg><span id="soundLabel">Sound on</span></button>
           <button id="btnHelp" class="mini" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2v2zm2.1-7.8-.9.9c-.7.7-1.2 1.3-1.2 2.9h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3a1.9 1.9 0 0 0-1.4-3.3 2 2 0 0 0-2 2H8a4 4 0 0 1 8 0c0 .9-.4 1.7-.9 2.1z" fill="currentColor"/></svg><span>Controls</span></button>
         </div>
         <div id="helpPanel" class="hidden">
-          <span class="desk">← → or A D to move · Space, ↑ or W to jump (tap for a small hop) · R restart · Esc pause · M mute</span>
-          <span class="mob">Hold ◀ ▶ to move (slide your thumb between them) · ▲ to jump, tap it quickly for a small hop</span>
+          <span class="desk">← → or A D to move · Space, ↑ or W to jump (tap for a small hop) · X, J or K to slash (Bone Blade) · R restart · Esc pause · M mute</span>
+          <span class="mob">Hold ◀ ▶ to move (slide your thumb between them) · ▲ to jump, tap it quickly for a small hop · sword button to slash</span>
         </div>
       </nav>
       <a class="home" href="../index.html">← back to portfolio</a>
@@ -236,6 +257,23 @@
       </div>
     </div>
 
+    <div id="relic" class="overlay hidden">
+      <div class="card relic-card" role="dialog" aria-labelledby="relicTitle">
+        <div class="eyebrow">Relic found</div>
+        <div class="relic-icon" id="relicIcon"></div>
+        <h3 id="relicTitle"></h3>
+        <p class="tag" id="relicText"></p>
+        <p class="relic-how" id="relicHow"></p>
+        <button id="btnRelicOk" class="cta">Got it</button>
+      </div>
+    </div>
+
+    <div id="relics" class="overlay hidden">
+      <h2>Relics</h2>
+      <div id="relicList"></div>
+      <button id="btnRelicsBack" class="ghost">Back</button>
+    </div>
+
     <div id="end" class="overlay hidden">
       <h2>You trusted nothing.<br>And it worked.</h2>
       <p class="tag" id="endStats"></p>
@@ -251,8 +289,9 @@
       <div class="tbtn" data-k="right" role="button" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5 L17.5 12 L8.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
     </div>
     <div class="tip">Turn your phone sideways for a bigger view</div>
-    <div class="pad" id="jumpPad">
-      <div class="tbtn jump" data-k="jump" role="button" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 15.5 L12 6.5 L19.5 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+    <div class="pad" id="actPad">
+      <div class="tbtn blade" data-k="attack" role="button" aria-label="Sword"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 2.5l2 2-9.2 9.2 1.6 1.6-1.4 1.4-1.6-1.6-2.3 2.3.9.9-1.4 1.4-3-3 1.4-1.4.9.9 2.3-2.3-1.6-1.6 1.4-1.4 1.6 1.6z" fill="currentColor"/><circle cx="4" cy="20" r="1.6" fill="currentColor"/></svg></div>
+      <div class="tbtn jump" id="jumpBtn" data-k="jump" role="button" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 15.5 L12 6.5 L19.5 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
     </div>
   </div>
 </div>
@@ -338,6 +377,19 @@ const SECTIONS = {
     b.ground(ox, ox + 9); b.trap({ x: ox + 3, w: 1, do: 'drop', lead: true });
     if (a[0] === 'combo') b.trap({ x: ox + 6, w: 1, do: 'drop', lead: false }); return 10;
   },
+  bigPit(b, ox) {                     // 6 tiles: too wide for one jump, easy with Wraith Wings
+    b.ground(ox, ox + 11); b.gap(ox + 3, ox + 8); const gs = px(ox + 3);
+    b.meta.jumps.push([gs - 35, gs - 15]); b.meta.djumps.push([gs + 30, gs + 150]); return 12;
+  },
+  tallWall(b, ox) {                   // 4 tiles high: needs the double jump
+    b.ground(ox, ox + 9); b.tiles(ox + 6, 11, ox + 6, 14); const wx = px(ox + 6);
+    b.meta.jumps.push([wx - 112, wx - 95]); b.meta.djumps.push([wx - 70, wx - 5]); return 10;
+  },
+  wraiths(b, ox, a) {                 // small ghosts that drift at you: slash them or stomp on their heads
+    const n = +a[0] || 2; b.ground(ox, ox + 9 + n * 5);
+    for (let i = 0; i < n; i++) b.wraiths.push({ x: px(ox + 9 + i * 5), y: px(15) - 26 });
+    return 10 + n * 5;
+  },
   wall(b, ox) { b.ground(ox, ox + 8); b.tiles(ox + 5, 13, ox + 5, 14); b.meta.jumps.push([px(ox + 5) - 62, px(ox + 5) - 48]); return 9; },
   lowCeil(b, ox) {                    // ceiling spikes over a small gap: only a short hop survives
     b.ground(ox, ox + 11); b.tiles(ox + 3, 10, ox + 8, 10); b.spikes(ox + 3, ox + 8, 11, { dir: 'down' }); b.gap(ox + 5, ox + 6);
@@ -366,36 +418,35 @@ const SECTIONS = {
 /* Difficulty climbs every level: longer runs, faster chases, shorter reaction windows, fewer checkpoints. */
 const LEVELS = [
   { name:'Hello, Friend', hint:'Just walk to the crypt.',
-    seq:'pit rise crumbleStep cp wall pit pit cp dropAhead rise jumpSpikes cp ball pit crumbleStep wall cp pit rise lowCeil dropAhead pit crumbleStep endPlain' },
+    seq:'pit rise crumbleStep cp wall pit pit cp dropAhead rise jumpSpikes cp ball pit crumbleStep wall cp pit rise lowCeil dropAhead pit crumbleStep endPlain'},
   { name:'Solid Ground', hint:'The floor is perfectly reliable.',
-    seq:'crumbleStep landCrumble dropAhead cp crumbleChase:12:6.2 pit pit rise cp landCrumble crumbleChase:16:6.4 jumpSpikes dropAhead cp pit:4 landCrumble:0.25 crumbleChase:18:6.6 endFlee' },
+    seq:'crumbleStep landCrumble dropAhead bigPit cp crumbleChase:12:6.2 pit pit rise cp tallWall landCrumble crumbleChase:16:6.4 jumpSpikes dropAhead cp bigPit pit:4 landCrumble:0.25 crumbleChase:18:6.6 endFlee'},
   { name:'Mind Your Head', hint:'Something is following you.', ghost:115,
-    seq:'ceil wall ceil:0.3 cp ball lowCeil pit ball:combo cp ceil:0.3 rise lowCeil crumbleStep cp ceil ball:combo lowCeil wall pit:4 landCrumble:0.25 endFake' },
+    seq:'ceil wall ceil:0.3 cp ball lowCeil bigPit pit ball:combo cp ceil:0.3 rise lowCeil crumbleStep cp tallWall ceil ball:combo lowCeil wall pit:4 landCrumble:0.25 endFake'},
   { name:'Leap of Faith', hint:'Trust the invisible.',
-    seq:'invis cp pit invis:bait pit:4 cp landCrumble:0.25 jumpSpikes invis:bait cp dropAhead pit lowCeil invis:bait crumbleChase:14:6.6 cp rise ceil:0.3 landCrumble:0.2 endHop' },
+    seq:'invis wraiths:2 cp pit invis:bait pit:4 cp landCrumble:0.25 bigPit jumpSpikes invis:bait cp dropAhead pit wraiths:3 lowCeil invis:bait crumbleChase:14:6.6 cp rise wraiths:2 ceil:0.3 landCrumble:0.2 endHop'},
   { name:'Backwards', hint:'Left is left. Right is right.',
-    seq:'reverse rise cp reverse:hard pit pit:4 cp jumpSpikes reverse crumbleChase:16:6.6 cp reverse:hard landCrumble:0.25 lowCeil reverse:hard ball:combo invis:bait endFlee' },
+    seq:'reverse rise cp reverse:hard wraiths:2 pit pit:4 cp jumpSpikes reverse tallWall crumbleChase:16:6.6 cp reverse:hard landCrumble:0.25 wraiths:3 lowCeil reverse:hard ball:combo invis:bait endFlee'},
   { name:'Keep Moving', hint:'Don\'t stop. It won\'t.', ghost:150,
-    seq:'spikeChase:14:6.2 cp spikeChase:18:6.5 crumbleChase:14:6.6 cp landCrumble:0.2 spikeChase:20:6.7 pit:4 lowCeil cp crumbleChase:20:6.8 jumpSpikes spikeChase:22:6.8 reverse:hard landCrumble:0.2 crumbleChase:20:6.9 endFake' },
+    seq:'spikeChase:14:6.2 cp spikeChase:18:6.5 wraiths:2 crumbleChase:14:6.6 cp landCrumble:0.2 spikeChase:20:6.7 pit:4 lowCeil bigPit cp crumbleChase:20:6.8 jumpSpikes spikeChase:22:6.8 wraiths:3 reverse:hard landCrumble:0.2 crumbleChase:20:6.9 endFake'},
   { name:'Incoming', hint:'Clear skies tonight.',
-    seq:'ball ball:combo wall lowCeil ball ceil:0.3 cp ball:combo pit:4 ball lowCeil ball:combo wall invis:bait cp ceil:0.3 ball:combo rise ball:combo landCrumble:0.2 spikeChase:20:6.8 ball:combo lowCeil ball:combo endHop' },
+    seq:'ball ball:combo wall lowCeil ball ceil:0.3 cp wraiths:3 ball:combo pit:4 ball lowCeil ball:combo wall invis:bait cp tallWall ceil:0.3 ball:combo rise ball:combo landCrumble:0.2 spikeChase:20:6.8 wraiths:2 ball:combo lowCeil ball:combo endHop'},
   { name:'Trust Issues', hint:'You know the rules by now.', ghost:135,
-    seq:'invis:bait reverse:hard ceil:0.3 jumpSpikes spikeChase:18:6.8 lowCeil cp landCrumble:0.2 pit ball:combo crumbleChase:18:6.9 dropAhead invis:bait reverse:hard pit:4 cp jumpSpikes ceil:0.3 lowCeil spikeChase:22:6.9 landCrumble:0.15 ball:combo invis:bait pit endFake' },
+    seq:'invis:bait reverse:hard ceil:0.3 jumpSpikes spikeChase:18:6.8 lowCeil wraiths:3 cp landCrumble:0.2 pit ball:combo crumbleChase:18:6.9 dropAhead bigPit invis:bait reverse:hard pit:4 cp jumpSpikes ceil:0.3 lowCeil wraiths:3 spikeChase:22:6.9 landCrumble:0.15 ball:combo invis:bait pit endFake'},
   { name:'No Mercy', hint:'It remembers you.', ghost:145,
-    seq:'spikeChase:20:6.9 lowCeil reverse:hard landCrumble:0.15 invis:bait ceil:0.3 ball:combo jumpSpikes crumbleChase:22:7 pit:4 cp lowCeil reverse:hard invis:bait landCrumble:0.15 pit ball:combo dropAhead spikeChase:24:7 ceil:0.3 jumpSpikes lowCeil reverse:hard pit:4 crumbleChase:22:7 invis:bait endFlee' },
+    seq:'spikeChase:20:6.9 lowCeil reverse:hard landCrumble:0.15 invis:bait wraiths:3 ceil:0.3 ball:combo jumpSpikes crumbleChase:22:7 pit:4 cp lowCeil tallWall reverse:hard invis:bait landCrumble:0.15 pit ball:combo dropAhead wraiths:4 spikeChase:24:7 ceil:0.3 jumpSpikes lowCeil reverse:hard bigPit pit:4 crumbleChase:22:7 invis:bait endFlee'},
   { name:'The Last Door', hint:'No tricks. Really.', ghost:150,
-    seq:'spikeChase:24:7 lowCeil landCrumble:0.15 invis:bait reverse:hard ceil:0.3 jumpSpikes ball:combo crumbleChase:24:7 pit:4 lowCeil pit invis:bait dropAhead cp ' +
-        'reverse:hard landCrumble:0.15 spikeChase:26:7.05 ceil:0.3 ball:combo lowCeil invis:bait jumpSpikes crumbleChase:26:7.05 pit:4 reverse:hard landCrumble:0.15 lowCeil ' +
-        'invis:bait ball:combo spikeChase:26:7.1 ceil:0.3 pit jumpSpikes crumbleChase:26:7.1 lowCeil endHop' },
+    seq:'spikeChase:24:7 lowCeil landCrumble:0.15 invis:bait reverse:hard ceil:0.3 wraiths:3 jumpSpikes ball:combo crumbleChase:24:7 pit:4 lowCeil pit invis:bait bigPit dropAhead cp reverse:hard landCrumble:0.15 spikeChase:26:7.05 ceil:0.3 ball:combo wraiths:4 lowCeil invis:bait jumpSpikes crumbleChase:26:7.05 pit:4 reverse:hard landCrumble:0.15 tallWall lowCeil invis:bait ball:combo spikeChase:26:7.1 ceil:0.3 wraiths:4 pit jumpSpikes crumbleChase:26:7.1 lowCeil endHop'},
 ];
 
 const QUIPS = ['Rest in pieces.','Boo.','Dead again.','Bone dry.','Trust no tile.','Grave mistake.','Skull issue.'];
 
 /* ---------- save ---------- */
 const SAVE_KEY = 'trust-issues-v2';
-let save = { unlocked: 1, best: {} };
-try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.unlocked) { save.unlocked = Math.min(LEVELS.length, s.unlocked | 0); save.best = s.best || {};
+let save = { unlocked: 1, best: {}, relics: {} };
+try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.unlocked) { save.unlocked = Math.min(LEVELS.length, s.unlocked | 0); save.best = s.best || {}; save.relics = s.relics || {};
   if (s.resume && s.resume.level >= 0 && s.resume.level < LEVELS.length) save.resume = { level: s.resume.level | 0, cp: s.resume.cp | 0 }; } } catch (e) {}
+const hasWings = () => !!save.relics.wings, hasBlade = () => !!save.relics.blade;
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
 /* ---------- audio: everything is synthesised, nothing is downloaded ---------- */
@@ -423,23 +474,33 @@ function audio() {
   if (actx.state === 'suspended' && !appHidden) actx.resume();     // never wake the audio while we're in the background
   return actx;
 }
-function out(g, rev) {
+function out(g, rev, pan = 0) {
+  if (pan && actx.createStereoPanner) { const pn = actx.createStereoPanner(); pn.pan.value = pan; g.connect(pn); g = pn; }
   g.connect(master);
   if (rev > 0) { const s2 = actx.createGain(); s2.gain.value = rev; g.connect(s2); s2.connect(revIn); }
 }
-function tone(f1, f2, dur, type = 'sine', vol = 0.08, delay = 0, rev = 0.12, attack = 0.008) {
+function tone(f1, f2, dur, type = 'sine', vol = 0.08, delay = 0, rev = 0.12, attack = 0.008, pan = 0) {
   const t0 = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(f1, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t0 + dur);
   g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + attack); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g); out(g, rev); o.start(t0); o.stop(t0 + dur + 0.05);
+  o.connect(g); out(g, rev, pan); o.start(t0); o.stop(t0 + dur + 0.05);
 }
-function noise(dur, f1, f2, q = 1, vol = 0.1, delay = 0, type = 'bandpass', attack = 0.01, rev = 0.1) {
+function noise(dur, f1, f2, q = 1, vol = 0.1, delay = 0, type = 'bandpass', attack = 0.01, rev = 0.1, pan = 0) {
   const t0 = actx.currentTime + delay, src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
   src.buffer = noiseBuf; src.loop = true; f.type = type; f.Q.value = q;
   f.frequency.setValueAtTime(f1, t0); f.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t0 + dur);
   g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + attack); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  src.connect(f).connect(g); out(g, rev); src.start(t0); src.stop(t0 + dur + 0.05);
+  src.connect(f).connect(g); out(g, rev, pan); src.start(t0); src.stop(t0 + dur + 0.05);
 }
+// a bowed, slightly wavering string through a low-pass filter: used for dissonant horror stingers
+function string(f, dur, vol, delay = 0, rev = 0.7, pan = 0) {
+  const t0 = actx.currentTime + delay, o = actx.createOscillator(), lp = actx.createBiquadFilter(), g = actx.createGain();
+  const vib = actx.createOscillator(), vg = actx.createGain(); vib.frequency.value = 5.5; vg.gain.value = f * 0.012; vib.connect(vg).connect(o.frequency);
+  o.type = 'sawtooth'; o.frequency.value = f; lp.type = 'lowpass'; lp.frequency.value = 1500; lp.Q.value = 0.7;
+  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + Math.min(0.15, dur * 0.3)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(lp).connect(g); out(g, rev, pan); o.start(t0); vib.start(t0); o.stop(t0 + dur + 0.05); vib.stop(t0 + dur + 0.05);
+}
+const rndPan = () => (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.45);
 // a pad note: two slightly detuned voices with a slow swell (for choir-like chords)
 function pad(f, dur, vol, delay = 0, rev = 0.8) {
   tone(f, f, dur, 'triangle', vol, delay, rev, 0.28); tone(f * 1.004, f * 1.004, dur, 'sine', vol * 0.8, delay, rev, 0.32);
@@ -483,6 +544,25 @@ function sfx(kind) {
         }
         tone(55, 28, 1.4, 'sine', 0.3, 2.05); noise(1.2, 400, 60, 0.7, 0.1, 2.05, 'lowpass', 0.02); break;                   // boom
       }
+      // --- horror stingers and creatures ---
+      case 'stinger': string(220, 1.1, 0.035); string(233.1, 1.1, 0.035, 0.02); string(311, 1.0, 0.025, 0.04);
+        noise(0.5, 6000, 2500, 3, 0.03, 0, 'bandpass', 0.01, 0.6); break;
+      case 'djump': noise(0.32, 700, 3200, 1.2, 0.06, 0, 'bandpass', 0.02, 0.5); tone(660, 990, 0.3, 'sine', 0.04, 0, 0.6, 0.01); tone(990, 1480, 0.3, 'sine', 0.02, 0.03, 0.6, 0.01); break;
+      case 'slash': noise(0.16, 3200, 700, 1, 0.12, 0, 'highpass', 0.004, 0.2); tone(2300, 2250, 0.35, 'sine', 0.03, 0.03, 0.4, 0.002); tone(3460, 3400, 0.25, 'sine', 0.015, 0.03, 0.4, 0.002); break;
+      case 'banish': noise(0.5, 400, 4000, 1, 0.08, 0, 'bandpass', 0.4, 0.7); tone(900, 180, 0.9, 'sawtooth', 0.025, 0.35, 0.8, 0.01); tone(905, 185, 0.9, 'sine', 0.04, 0.35, 0.8, 0.01);
+        noise(0.12, 2500, 900, 1, 0.12, 0.38, 'bandpass', 0.002, 0.5); break;
+      case 'wraith': noise(1.2, 1600, 700, 5, 0.04, 0, 'bandpass', 0.4, 0.7, rndPan()); tone(392, 349, 1, 'sine', 0.018, 0.1, 0.8, 0.3); break;
+      case 'relic': [130.8, 164.8, 196, 246.9, 329.6].forEach((f, i) => pad(f, 3, 0.03, i * 0.06)); [1046, 1318, 1568, 2093].forEach((f, i) => tone(f, f, 1.6, 'sine', 0.03, 0.3 + i * 0.12, 0.8, 0.004)); break;
+      // --- sparse horror ambience ---
+      case 'musicbox': {                                // an out-of-tune lullaby that never quite resolves
+        const notes = [659, 784, 988, 880, 784, 659, 740, 622], pan = rndPan() * 0.6;
+        notes.forEach((f, i) => { const d = f * (1 + (Math.random() - 0.5) * 0.012); tone(d, d, 1.1, 'sine', 0.035, i * 0.42, 0.85, 0.003, pan); tone(d * 2.01, d * 2.01, 0.5, 'sine', 0.01, i * 0.42, 0.85, 0.003, pan); });
+        break; }
+      case 'scream': { const pan = rndPan(); noise(1.4, 1500, 900, 6, 0.05, 0, 'bandpass', 0.08, 0.95, pan); tone(980, 620, 1.3, 'sawtooth', 0.012, 0, 0.95, 0.08, pan); break; }
+      case 'chains': { const pan = rndPan(); for (let i = 0; i < 9; i++) { const at = i * 0.07 + Math.random() * 0.05; tone(2600 + Math.random() * 1400, 2400, 0.06, 'square', 0.008, at, 0.6, 0.002, pan); noise(0.05, 4200, 3800, 3, 0.02, at, 'bandpass', 0.002, 0.6, pan); } break; }
+      case 'breath': { const pan = rndPan() * 0.4; for (let i = 0; i < 2; i++) { noise(0.9, 500, 900, 0.8, 0.05, i * 1.3, 'lowpass', 0.45, 0.3, pan); noise(1.0, 900, 400, 0.8, 0.04, i * 1.3 + 0.75, 'lowpass', 0.3, 0.3, pan); } break; }
+      case 'footsteps': { const pan = -0.7 - Math.random() * 0.25; for (let i = 0; i < 4; i++) { tone(95, 55, 0.12, 'sine', 0.06, i * 0.48, 0.5, 0.002, pan); noise(0.08, 500, 200, 0.7, 0.03, i * 0.48, 'lowpass', 0.002, 0.5, pan); } break; }
+      case 'slam': { const pan = rndPan(); noise(0.5, 400, 80, 0.7, 0.12, 0, 'lowpass', 0.002, 1, pan); tone(62, 38, 0.8, 'sine', 0.12, 0, 1, 0.002, pan); break; }
       case 'thunder':
         noise(0.25, 5200, 1500, 0.7, 0.1, 0, 'highpass', 0.002, 0.5);
         noise(2.8, 900, 55, 0.6, 0.16, 0.05, 'lowpass', 0.04, 0.5); tone(48, 30, 2.6, 'sine', 0.16, 0.05, 0.4, 0.08); break;
@@ -562,21 +642,28 @@ function ambientTick(dt) {
   ambT -= dt; if (ambT > 0) return;
   ambT = 6 + Math.random() * 9;
   const r = Math.random();
-  if (r < 0.24) storm();
-  else if (r < 0.42) sfx('wind');
-  else if (r < 0.56) sfx('creak');
-  else if (r < 0.7) { sfx('crow'); spawnBats(); }
-  else if (r < 0.82) sfx('bell');
-  else sfx('farwhisper');
+  if (r < 0.16) storm();
+  else if (r < 0.27) sfx('wind');
+  else if (r < 0.35) sfx('creak');
+  else if (r < 0.45) { sfx('crow'); spawnBats(); }
+  else if (r < 0.51) sfx('bell');
+  else if (r < 0.58) sfx('farwhisper');
+  else if (r < 0.68) sfx('musicbox');
+  else if (r < 0.74) sfx('scream');
+  else if (r < 0.82) sfx('chains');
+  else if (r < 0.88) sfx('breath');
+  else if (r < 0.95) sfx('footsteps');
+  else sfx('slam');
 }
 function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
 /* ---------- input ---------- */
-const keys = { left:false, right:false, jump:false };
-let jumpPressed = false;
-const KEYMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump' };
+const keys = { left:false, right:false, jump:false, attack:false };
+let jumpPressed = false, attackPressed = false;
+const KEYMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump', KeyX:'attack', KeyJ:'attack', KeyK:'attack' };
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code];
+  if (state === 'relic' && (e.code === 'Enter' || e.code === 'Space')) { e.preventDefault(); $('btnRelicOk').click(); return; }
   if (state === 'complete') {
     if (e.code === 'Enter' || e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); goNext(); }
     else if (e.code === 'KeyR') replay();
@@ -584,9 +671,10 @@ addEventListener('keydown', e => {
     return;
   }
   if (k) { if (isInGame()) e.preventDefault();
-           if (k === 'jump' && !keys.jump && !e.repeat) jumpPressed = true; keys[k] = true; return; }
+           if (k === 'jump' && !keys.jump && !e.repeat) jumpPressed = true;
+           if (k === 'attack' && !keys.attack && !e.repeat) attackPressed = true; keys[k] = true; return; }
   if (e.code === 'KeyR' && state === 'play') respawn(true);
-  else if (e.code === 'Escape' || e.code === 'KeyP') { if (isInGame()) pause(); else if (state === 'levels' || state === 'menu') { if (paused) resume(); } }
+  else if (e.code === 'Escape' || e.code === 'KeyP') { if (isInGame()) pause(); else if (state === 'levels' || state === 'relics') showMenu(); else if (state === 'menu' && paused) resume(); }
   else if (e.code === 'KeyM') toggleMute();
   else if (e.code === 'Enter' && state === 'menu' && !(document.activeElement && document.activeElement.tagName === 'BUTTON')) { if (paused) resume(); else if (save.resume) startFrom(save.resume.level, save.resume.cp); else startFrom(0); }
 });
@@ -595,7 +683,7 @@ addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; if 
 // touch: the move pad tracks each finger, so sliding from ◀ to ▶ switches direction without lifting
 const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
 if (isTouch) document.body.classList.add('touch');
-const btnEls = { left: document.querySelector('[data-k=left]'), right: document.querySelector('[data-k=right]'), jump: document.querySelector('[data-k=jump]') };
+const btnEls = { left: document.querySelector('[data-k=left]'), right: document.querySelector('[data-k=right]'), jump: document.querySelector('[data-k=jump]'), attack: document.querySelector('[data-k=attack]') };
 const moveFingers = new Map();
 function syncMove() {
   const dirs = new Set(moveFingers.values());
@@ -605,7 +693,7 @@ function syncMove() {
 function dirAt(x, pad) {                     // left half of the pad = left, right half = right
   const r = pad.getBoundingClientRect(); return x < r.left + r.width / 2 ? 'left' : 'right';
 }
-const movePad = document.getElementById('movePad'), jumpPad = document.getElementById('jumpPad');
+const movePad = document.getElementById('movePad'), jumpPad = document.getElementById('jumpBtn');
 function pressFx(el) { el.classList.remove('ripple'); void el.offsetWidth; el.classList.add('ripple'); buzz(8); }
 movePad.addEventListener('pointerdown', e => { e.preventDefault(); pressFx(btnEls[dirAt(e.clientX, movePad)]); try { movePad.setPointerCapture(e.pointerId); } catch (_) {} moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); });
 movePad.addEventListener('pointermove', e => { if (moveFingers.has(e.pointerId)) { moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); } });
@@ -615,6 +703,9 @@ jumpPad.addEventListener('pointerdown', e => { e.preventDefault(); try { jumpPad
   if (!jumpFingers.size) { jumpPressed = true; pressFx(btnEls.jump); } jumpFingers.add(e.pointerId); keys.jump = true; btnEls.jump.classList.add('on'); });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpPad.addEventListener(ev, e => {
   jumpFingers.delete(e.pointerId); if (!jumpFingers.size) { keys.jump = false; btnEls.jump.classList.remove('on'); } });
+btnEls.attack.addEventListener('pointerdown', e => { e.preventDefault(); try { btnEls.attack.setPointerCapture(e.pointerId); } catch (_) {}
+  attackPressed = true; keys.attack = true; pressFx(btnEls.attack); btnEls.attack.classList.add('on'); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btnEls.attack.addEventListener(ev, () => { keys.attack = false; btnEls.attack.classList.remove('on'); });
 addEventListener('contextmenu', e => { if (isInGame()) e.preventDefault(); });
 document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled) { sfx('click'); buzz(6); } startAmbience(); });
 // Going to the background (home button, app switch, screen off, another tab): pause the game,
@@ -745,7 +836,7 @@ function buildLevel(i) {
   const cells = new Map(); let gid = 0, maxX = 0;
   const key = (x, y) => x * ROWS + y;
   const b = {
-    start: null, door: null, flags: [], fakes: [], labels: [], traps: [], meta: { jumps: [], taps: [], baits: [] },
+    start: null, door: null, flags: [], fakes: [], labels: [], wraiths: [], traps: [], meta: { jumps: [], taps: [], baits: [], djumps: [] },
     put(x, y, o) { cells.set(key(x, y), o); if (x + 1 > maxX) maxX = x + 1; },
     clear(x1, y1, x2, y2) { for (let x = x1; x <= x2; x++) for (let y = y1; y <= y2; y++) cells.delete(key(x, y)); },
     ground(x1, x2) { for (let x = x1; x <= x2; x++) for (let y = 15; y < ROWS; y++) b.put(x, y, { k: 't' }); },
@@ -764,7 +855,7 @@ function buildLevel(i) {
   const cols = maxX;
   const lv = { def, cols, W: cols * T, cam: 0, t: 0, reverse: false, chomp: null,
     grid: new Array(cols * ROWS).fill(null), dyn: [], groups: {}, groupTiles: {}, spikeCols: Array.from({ length: cols }, () => []),
-    spikes: [], rising: [], balls: [], labels: b.labels, fakes: b.fakes, flags: b.flags, door: b.door, start: b.start, meta: b.meta,
+    spikes: [], rising: [], balls: [], labels: b.labels, wraiths: b.wraiths.map(w => ({ ...w, by: w.y, alive: true, awake: false, ph: Math.random() * 6 })), fakes: b.fakes, flags: b.flags, door: b.door, start: b.start, meta: b.meta,
     traps: b.traps.map(t => ({ ...t, fired: false })) };
   for (const [k, c] of cells) {
     const x = Math.floor(k / ROWS), y = k % ROWS;
@@ -796,9 +887,11 @@ function loadLevel(i, keepCp) {
     const f = L.flags[cpIndex]; sx = f.x + 5; sy = f.y - PH;
     L.flags.forEach((fl, j) => { if (j <= cpIndex) { fl.on = true; fl.raise = 1; } });
     L.traps.forEach(t => { if (px(t.x + t.w) <= f.x) t.fired = true; });
+    L.wraiths.forEach(w => { if (w.x < f.x + 60) w.alive = false; });
   }
   P = { x: sx, y: sy, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1,
-        walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0 };
+        walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0, airJumps: 1, wingT: 0, atk: 0, atkCd: 0 };
+  jumpPressed = attackPressed = false;
   jumpPressed = false; particles = []; shake = 0; L.cam = camTarget(); L.camY = camTargetY();
   L.ghost = L.def.ghost ? { x: P.x - 460, y: P.y - 80, speed: L.def.ghost, at: 1.4, a: 0, beat: 0, woke: false, talk: 2, armed: true, trail: [], scare: 0 } : null;
 }
@@ -822,7 +915,7 @@ function fire(tr) {
   if (tr.do === 'rise') {
     const sp = L.spikes.filter(s => s.g === tr.g), minX = Math.min(...sp.map(s => s.x));
     sp.forEach(s => { s.riseAt = L.t + d + ((s.x - minX) / T) * st; L.rising.push(s); });
-    sfx('trap');
+    sfx('trap'); sfx('stinger');
   } else if (tr.do === 'crumble') {
     const ts = L.groupTiles[tr.g], minX = Math.min(...ts.map(t => t.x));
     ts.forEach(t => t.crumbleAt = L.t + d + ((t.x - minX) / T) * st);
@@ -905,11 +998,17 @@ function updateWorld(dt) {
   }
   for (const f of L.flags) if (f.on && (f.raise || 0) < 1) f.raise = Math.min(1, (f.raise || 0) + dt * 3);
   updateGhost(dt);
+  if (L.wraiths.length) updateWraiths(dt);
 }
 // a ghost drifts after the player through walls; it speeds up when it falls far behind
 function updateGhost(dt) {
   const G = L.ghost; if (!G || L.t < G.at || state === 'win') return;
-  if (!G.woke) { G.woke = true; sfx('whisper'); }
+  if (G.gone) {
+    G.gone = Math.max(0, G.gone - dt); G.dist = 9999;
+    if (!G.gone) { G.x = P.x - 520; G.y = P.y - 80; G.a = 0; sfx('whisper'); }
+    return;
+  }
+  if (!G.woke) { G.woke = true; sfx('whisper'); sfx('stinger'); }
   G.a = Math.min(1, G.a + dt * 1.5);
   const tx = P.x + P.w / 2, ty = P.y + P.h / 2 - 4, dx = tx - G.x, dy = ty - G.y, d = Math.hypot(dx, dy) || 1;
   const sp = G.speed * (d > 650 ? 2.4 : 1);
@@ -1007,11 +1106,24 @@ function updatePlayer(dt) {
   if (dir) { P.vx += dir * (P.ground ? 2600 : 1800) * dt; P.vx = Math.max(-SPEED, Math.min(SPEED, P.vx)); P.face = dir; }
   else { const f = (P.ground ? 3200 : 900) * dt; P.vx = Math.abs(P.vx) <= f ? 0 : P.vx - Math.sign(P.vx) * f; }
 
-  if (jumpPressed) { P.buffer = 0.12; jumpPressed = false; }
+  let airPress = false;
+  if (jumpPressed) { P.buffer = 0.12; jumpPressed = false; airPress = true; }
   P.buffer -= dt; P.coyote = P.ground ? 0.09 : P.coyote - dt;
+  if (P.ground) P.airJumps = 1;
   if (P.buffer > 0 && P.coyote > 0) {
     P.vy = -JUMP; P.jumped = true; P.buffer = 0; P.coyote = 0; P.ground = false; P.sx = 0.75; P.sy = 1.3; sfx('jump'); dust(P.x + P.w / 2, P.y + P.h, 6, 0);
+  } else if (airPress && !P.ground && P.coyote <= 0 && P.airJumps > 0 && hasWings()) {     // Wraith Wings: a second jump in mid-air
+    P.vy = -JUMP * 0.9; P.airJumps--; P.buffer = 0; P.jumped = true; P.wingT = 0.35; P.sx = 0.8; P.sy = 1.25;
+    sfx('djump'); burst(P.x + P.w / 2, P.y + P.h, C.glow, 12, 160);
   }
+  P.wingT = Math.max(0, P.wingT - dt);
+  // Bone Blade: a short slash in front of the skeleton
+  P.atk = Math.max(0, P.atk - dt); P.atkCd = Math.max(0, P.atkCd - dt);
+  if (attackPressed) {
+    attackPressed = false;
+    if (hasBlade() && P.atkCd <= 0) { P.atk = 0.24; P.atkCd = 0.3; P.hitDone = false; sfx('slash'); }
+  }
+  if (P.atk > 0.08 && !P.hitDone) { P.hitDone = true; slashHit(); }
   let g = GRAV; if (P.vy < 0 && !keys.jump) g *= 2.4;
   P.vy = Math.min(P.vy + g * dt, 950);
 
@@ -1054,6 +1166,33 @@ function updatePlayer(dt) {
   if (!D.hidden && cx > D.x + 4 && cx < D.x + D.w - 4 && cy > D.y && cy < D.y + D.h) win();
 }
 
+function slashBox() { return { x: P.face > 0 ? P.x + P.w / 2 - 4 : P.x + P.w / 2 - 50, y: P.y - 22, w: 54, h: P.h + 30 }; }
+function killWraith(w) { w.alive = false; sfx('banish'); burst(w.x, w.y, '#cfe0ff', 22, 260); burst(w.x, w.y, C.glow, 10, 180); shake = Math.max(shake, 4); }
+function slashHit() {
+  const box = slashBox();
+  for (const w of L.wraiths) if (w.alive && w.x > box.x && w.x < box.x + box.w && w.y > box.y && w.y < box.y + box.h) killWraith(w);
+  const G = L.ghost;                                   // the big ghost can be banished for a few seconds
+  if (G && G.a > 0.5 && !G.gone && G.x > box.x - 14 && G.x < box.x + box.w + 14 && G.y > box.y - 20 && G.y < box.y + box.h + 20) {
+    G.gone = 4.5; G.a = 0; sfx('banish'); burst(G.x, G.y, '#dfeee8', 30, 320); shake = 8;
+  }
+}
+function updateWraiths(dt) {
+  const cx = P.x + P.w / 2, cy = P.y + P.h / 2;
+  for (const w of L.wraiths) {
+    if (!w.alive) continue;
+    w.ph += dt * 3;
+    const dx = cx - w.x, dy = cy - w.y, d = Math.hypot(dx, dy) || 1;
+    if (!w.awake && Math.abs(dx) < 330) { w.awake = true; sfx('wraith'); }
+    if (w.awake && state === 'play') { w.x += dx / d * 85 * dt; w.y += (dy / d * 70 + Math.sin(w.ph) * 18) * dt; }
+    else w.y = w.by + Math.sin(w.ph) * 5;
+    if (state !== 'play') continue;
+    // stomp: land on its head from above
+    if (P.vy > 0 && P.y + P.h > w.y - 16 && P.y + P.h < w.y + 2 && Math.abs(cx - w.x) < 17) {
+      killWraith(w); P.vy = -470; P.airJumps = 1; continue;
+    }
+    if (d < 15) return die();
+  }
+}
 function die() {
   if (state !== 'play') return;
   state = 'dead'; stateT = 0.85; deaths++; levelDeaths++;
@@ -1273,7 +1412,7 @@ function render(time) {
     ctx.fillStyle = '#05060a'; ctx.beginPath(); ctx.arc(-2, -1, 1.4, 0, 7); ctx.arc(2, -1, 1.4, 0, 7); ctx.fill(); ctx.restore();
   }
 
-  if (state !== 'dead' && state !== 'eaten') drawPlayer(time);
+  if (state !== 'dead' && state !== 'eaten') { drawWings(); drawPlayer(time); drawBlade(); }
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2)); ctx.fillStyle = p.color;
     if (p.round) { ctx.beginPath(); ctx.arc(p.x, p.y, p.s / 2, 0, 7); ctx.fill(); } else ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
@@ -1295,6 +1434,7 @@ function render(time) {
   enterWorld();
   if (!L.door.hidden) drawDoor(L.door, time, false);
   drawGhost(time);
+  drawWraiths(time);
   if (state === 'eaten') {
     const u = Math.max(0, Math.min(1, (stateT - 0.32) / 0.4));               // pulled into the mouth, spinning and shrinking
     if (u < 1) {
@@ -1359,6 +1499,52 @@ function render(time) {
   }
 }
 
+function drawWings() {                                // Wraith Wings flash on a double jump
+  if (!P.wingT) return;
+  const a = P.wingT / 0.35, cx = P.x + P.w / 2, cy = P.y + 6, sp = 1 - a;
+  ctx.save(); ctx.globalAlpha = a * 0.75; ctx.fillStyle = C.glow;
+  for (const s of [-1, 1]) {
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.quadraticCurveTo(cx + s * (16 + sp * 10), cy - 18 - sp * 8, cx + s * (30 + sp * 8), cy - 4);
+    ctx.quadraticCurveTo(cx + s * 20, cy - 2, cx + s * 24, cy + 6); ctx.quadraticCurveTo(cx + s * 12, cy + 2, cx, cy + 4); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBlade() {                                // Bone Blade: held low, swung in an arc when attacking
+  if (!hasBlade()) return;
+  const f = P.face, hx = P.x + P.w / 2 + f * 9, hy = P.y + 12;
+  const k = P.atk > 0 ? 1 - P.atk / 0.24 : -1, ang = k >= 0 ? (-1.9 + k * 2.6) : 0.75;
+  ctx.save(); ctx.translate(hx, hy); ctx.scale(f, 1); ctx.rotate(ang);
+  ctx.fillStyle = C.boneShade; ctx.fillRect(-1.5, -2, 3, 7);                  // grip
+  ctx.fillStyle = C.bone; ctx.fillRect(-5, -3, 10, 2.4);                      // crossguard
+  ctx.beginPath(); ctx.moveTo(-2, -3); ctx.lineTo(2, -3); ctx.lineTo(1.2, -22); ctx.lineTo(0, -25); ctx.lineTo(-1.2, -22); ctx.closePath();
+  ctx.fillStyle = '#eef6f2'; ctx.fill();
+  ctx.globalAlpha = 0.35; ctx.strokeStyle = C.glow; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.restore();
+  if (P.atk > 0) {                                    // the slash trail
+    const a = P.atk / 0.24;
+    ctx.save(); ctx.globalAlpha = a * 0.8; ctx.strokeStyle = C.glow; ctx.lineWidth = 4 * a + 1; ctx.lineCap = 'round';
+    ctx.beginPath(); const sa = f > 0 ? -1.4 : Math.PI + 1.4, ea = f > 0 ? 0.9 : Math.PI - 0.9;
+    ctx.arc(P.x + P.w / 2, P.y + 10, 30, Math.min(sa, ea), Math.max(sa, ea)); ctx.stroke();
+    ctx.globalAlpha = a * 0.3; ctx.lineWidth = 12 * a; ctx.stroke(); ctx.restore();
+  }
+}
+function drawWraiths(time) {
+  for (const w of L.wraiths) {
+    if (!w.alive || w.x < L.cam - 40 || w.x > L.cam + VW + 40) continue;
+    const face = P.x + P.w / 2 > w.x ? 1 : -1, fl = 0.75 + 0.15 * Math.sin(time * 13 + w.ph);
+    ctx.save(); ctx.translate(w.x, w.y); ctx.scale(face, 1); ctx.globalAlpha = fl;
+    ctx.fillStyle = 'rgba(150,180,255,.16)'; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
+    const g = ctx.createLinearGradient(0, -12, 0, 20); g.addColorStop(0, 'rgba(210,225,255,.95)'); g.addColorStop(1, 'rgba(170,190,240,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-10, 4); ctx.bezierCurveTo(-11, -9, -6, -14, 0, -14); ctx.bezierCurveTo(6, -14, 11, -9, 10, 4);
+    for (let i = 0; i < 4; i++) { const sx = 10 - (i + 1) * 5, wv = Math.sin(time * 9 + i + w.ph) * 2.5; ctx.quadraticCurveTo(sx + 2 + wv, 12, sx - 3 + wv, 18); ctx.quadraticCurveTo(sx, 8, sx - 1, 5); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#020203'; ctx.beginPath(); ctx.ellipse(-3, -6, 2, 3, -0.2, 0, 7); ctx.ellipse(4, -6, 2, 3, 0.2, 0, 7); ctx.fill();
+    ctx.fillStyle = w.awake ? '#ff3b3b' : '#a32a2a'; ctx.beginPath(); ctx.arc(-2.6, -5.6, 0.9, 0, 7); ctx.arc(4.4, -5.6, 0.9, 0, 7); ctx.fill();
+    ctx.fillStyle = '#020203'; ctx.beginPath(); ctx.ellipse(1, 1, 2, w.awake ? 3.5 + Math.sin(time * 8) : 1.5, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+}
 function drawDevourOverlay(time) {
   const t = stateT, G = L.ghost, cx = G.x - L.cam, cy = G.y - (L.camY || 0);
   ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.55, t * 1.6) + ')'; ctx.fillRect(0, 0, VW, VH);
@@ -1445,7 +1631,7 @@ function drawPlayer(time) {
 
 /* ---------- screens ---------- */
 const $ = id => document.getElementById(id);
-const screens = ['menu', 'levels', 'end', 'card'];
+const screens = ['menu', 'levels', 'end', 'card', 'relic', 'relics'];
 function show(id) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== id));
   if (id) { moveFingers.clear(); syncMove(); jumpFingers.clear(); keys.jump = false; btnEls.jump.classList.remove('on'); }
@@ -1459,6 +1645,32 @@ const ICON = {
   plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4h2v7h7v2h-7v7h-2v-7H4v-2h7z" fill="currentColor"/></svg>',
   redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z" fill="currentColor"/></svg>',
 };
+const RELICS = [
+  { id: 'wings', name: 'Wraith Wings', level: 2, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 30c-4-8-12-14-21-14 3 3 4 6 4 9-2 0-3 1-4 2 4 0 8 2 10 5-2 0-3 1-4 3 6-1 11 0 15 3zm0 0c4-8 12-14 21-14-3 3-4 6-4 9 2 0 3 1 4 2-4 0-8 2-10 5 2 0 3 1 4 3-6-1-11 0-15 3z" fill="currentColor"/></svg>',
+    text: 'Ghostly wings let you jump a second time in mid-air. Some gaps and walls now need them.',
+    how: { desk: 'Press jump again while you are in the air.', mob: 'Tap ▲ again while you are in the air.' } },
+  { id: 'blade', name: 'Bone Blade', level: 4, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M38 4l6 6-19 19 3 3-3 3-3-3-5 5 2 2-3 3-7-7 3-3 2 2 5-5-3-3 3-3 3 3z" fill="currentColor"/><circle cx="8" cy="40" r="3.5" fill="currentColor"/></svg>',
+    text: 'Wraiths now haunt the graveyard. Slash them to banish them, or stomp on their heads. The blade even scares the big ghost away for a few seconds.',
+    how: { desk: 'Press X, J or K to slash.', mob: 'Tap the sword button next to ▲ to slash.' } },
+];
+function syncRelics() { document.body.classList.toggle('has-blade', hasBlade()); }
+let relicQueue = [];
+function showRelic() {
+  const r = RELICS.find(x => x.id === relicQueue[0]); if (!r) { state = 'play'; show(null); return; }
+  save.relics[r.id] = true; persist(); syncRelics();
+  state = 'relic'; show('relic'); sfx('relic');
+  $('relicIcon').innerHTML = r.icon; $('relicTitle').textContent = r.name; $('relicText').textContent = r.text;
+  $('relicHow').textContent = isTouch ? r.how.mob : r.how.desk;
+  setTimeout(() => $('btnRelicOk').focus(), 50);
+}
+function showRelics() {
+  state = 'relics'; show('relics');
+  $('relicList').innerHTML = RELICS.map(r => {
+    const got = !!save.relics[r.id];
+    return '<div class="relic-row' + (got ? '' : ' locked') + '"><div class="ri">' + r.icon + '</div><div><b>' + (got ? r.name : 'Locked relic') + '</b><span>' +
+      (got ? (isTouch ? r.how.mob : r.how.desk) : 'Reach level ' + r.level + ' to find it.') + '</span></div></div>';
+  }).join('');
+}
 function showMenu() {
   state = 'menu'; show('menu');
   const r = save.resume && save.resume.level < LEVELS.length ? save.resume : null, fresh = !paused && !r;
@@ -1471,6 +1683,7 @@ function showMenu() {
   $('playIcon').innerHTML = paused ? ICON.redo : fresh ? ICON.play : ICON.plus;
   $('btnPlay').classList.toggle('primary', fresh);
   $('levelsSub').textContent = save.unlocked + ' of ' + LEVELS.length + ' unlocked';
+  $('relicsSub').textContent = RELICS.filter(r => save.relics[r.id]).length + ' of ' + RELICS.length + ' found';
   $('soundLabel').textContent = muted ? 'Sound off' : 'Sound on';
   const first = [$('btnResume'), $('btnContinue'), $('btnPlay')].find(b => !b.classList.contains('hidden'));
   setTimeout(() => first && first.focus({ preventScroll: true }), 30);
@@ -1509,6 +1722,8 @@ function startFrom(i, cp = -1) {
   startAmbience(); paused = false; levelDeaths = 0; levelTime = 0; cpIndex = cp;
   loadLevel(i, cp >= 0); state = 'play'; show(null);
   save.resume = { level: i, cp: cpIndex }; persist();
+  relicQueue = RELICS.filter(r => i >= r.level - 1 && !save.relics[r.id]).map(r => r.id);   // reaching a level hands out its relic
+  if (relicQueue.length) showRelic();
 }
 function goNext() { if (levelIndex + 1 >= LEVELS.length) return showEnd(); startFrom(levelIndex + 1); }
 function goPrev() { if (levelIndex > 0) startFrom(levelIndex - 1); }
@@ -1519,6 +1734,9 @@ function toggleMute() {
 }
 
 $('btnPlay').onclick = () => { if (paused) startFrom(levelIndex); else startFrom(0); };
+$('btnRelicOk').onclick = () => { relicQueue.shift(); if (relicQueue.length) showRelic(); else { state = 'play'; show(null); last = performance.now(); } };
+$('btnRelics').onclick = showRelics;
+$('btnRelicsBack').onclick = showMenu;
 $('btnContinue').onclick = () => { const r = save.resume; if (r) startFrom(r.level, r.cp); };
 $('btnSound').onclick = () => toggleMute();
 $('btnHelp').onclick = () => { const h = $('helpPanel'), open = h.classList.toggle('hidden'); $('btnHelp').setAttribute('aria-expanded', String(!open)); };
@@ -1559,11 +1777,12 @@ if (!inApp && isTouch && (fsTarget.requestFullscreen || fsTarget.webkitRequestFu
   };
 }
 
-loadLevel(0, false); resize(); showMenu(); requestAnimationFrame(frame);
+syncRelics(); loadLevel(0, false); resize(); showMenu(); requestAnimationFrame(frame);
 
 // hooks for the automated test bot (?test disables the real-time loop)
 window.__TI = { keys, get state() { return state; }, get P() { return P; }, get L() { return L; }, get level() { return levelIndex; },
-  get time() { return levelTime; }, press() { jumpPressed = true; }, step(n) { for (let i = 0; i < n; i++) update(STEP); },
+  get time() { return levelTime; }, press() { jumpPressed = true; }, attack() { attackPressed = true; },
+  grant(on = true) { save.relics = on ? { wings: true, blade: true } : {}; syncRelics(); }, step(n) { for (let i = 0; i < n; i++) update(STEP); },
   start: startFrom, LEVELS, render: () => render(performance.now() / 1000),
   view: () => ({ VW, VH, cam: L.cam, camY: L.camY }), sfx, storm, get hidden() { return appHidden; }, audioNodes: () => ({ actx, master }) };
 })();

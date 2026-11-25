@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(ROOT)
 PACKAGE = 'com.designbynaren.trustissues'
 LABEL = 'Trust Issues'
-VERSION_CODE, VERSION_NAME = 4, '1.3'
+VERSION_CODE, VERSION_NAME = 5, '1.4'
 MIN_SDK, TARGET_SDK = 24, 34
 
 # android.R.attr / android.R.style ids (read from android.jar with javap)
