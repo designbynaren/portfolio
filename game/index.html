@@ -670,14 +670,14 @@ function ghostAudio(dt) {
   m.nf.frequency.setTargetAtTime(800 + near * 1400, t, 0.2);
   if (!live) return;
   G.talk -= dt;                                       // random whispers and giggles while it hunts you
-  if (G.talk <= 0) { G.talk = 3 + Math.random() * 4; sfx(Math.random() < 0.6 ? 'murmur' : 'giggle'); }
+  if (G.talk <= 0) { G.talk = 8 + Math.random() * 6; sfx(Math.random() < 0.6 ? 'murmur' : 'giggle'); }
 }
 // No constant drone: the graveyard is quiet, with an occasional event every 6-15 s
 let ambT = 4, lightning = 0, thunderAt = 0, thunderDone = true, bats = [];
 function startAmbience() { try { audio(); ambience = true; } catch (e) {} }
 function storm() { lightning = 0.0001; thunderAt = 0.35 + Math.random() * 0.7; thunderDone = false; }
 function spawnBats() {
-  const n = 4 + (Math.random() * 5 | 0), y0 = 50 + Math.random() * 90;
+  const n = 3 + (Math.random() * 3 | 0), y0 = 50 + Math.random() * 90;
   for (let i = 0; i < n; i++) bats.push({ x: VW + 20 + i * 18 + Math.random() * 30, y: y0 + (Math.random() - .5) * 40, v: 140 + Math.random() * 80, ph: Math.random() * 6, s: 0.7 + Math.random() * 0.6 });
 }
 function boltLevel() {                                // brightness of the lightning flash: flash, flicker, flash, fade
@@ -695,20 +695,14 @@ function ambientTick(dt) {
   if (bats.length) bats = bats.filter(b => b.x > -30);
   if (!ambience) return;
   ambT -= dt; if (ambT > 0) return;
-  ambT = 6 + Math.random() * 9;
+  ambT = 14 + Math.random() * 14;                    // something every 14-28 s, silence in between
   const r = Math.random();
-  if (r < 0.16) storm();
-  else if (r < 0.27) sfx('wind');
-  else if (r < 0.35) sfx('creak');
-  else if (r < 0.45) { sfx('crow'); spawnBats(); }
-  else if (r < 0.51) sfx('bell');
-  else if (r < 0.58) sfx('farwhisper');
-  else if (r < 0.68) sfx('musicbox');
-  else if (r < 0.74) sfx('scream');
-  else if (r < 0.82) sfx('chains');
-  else if (r < 0.88) sfx('breath');
-  else if (r < 0.95) sfx('footsteps');
-  else sfx('slam');
+  if (r < 0.25) storm();
+  else if (r < 0.45) sfx('wind');
+  else if (r < 0.6) { sfx('crow'); spawnBats(); }
+  else if (r < 0.72) sfx('bell');
+  else if (r < 0.88) sfx('musicbox');
+  else sfx('creak');
 }
 function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
@@ -819,7 +813,7 @@ function fitStage() {
 function resize() {
   fitStage();
   const r = cv.getBoundingClientRect();
-  let dpr = Math.min(window.devicePixelRatio || 1, isTouch ? 1.75 : 2);     // phones: a little lighter for smooth frame rates
+  let dpr = Math.min(window.devicePixelRatio || 1, isTouch ? 1 : 2);   // phones: 1x keeps the full-screen effects at 60 fps     // phones: a little lighter for smooth frame rates
   if (r.width * dpr > 1920) dpr = 1920 / Math.max(1, r.width);          // keep the pixel count sane on big screens
   cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
   SCALE = cv.width / VW; HUDS = cv.width / HUDW; buildCaches();
@@ -872,10 +866,6 @@ function buildCaches() {
   const r1 = Math.max(VW, VH) * 0.56, dg = dk.createRadialGradient(VW, VH, 95, VW, VH, r1);
   dg.addColorStop(0, 'rgba(2,2,6,0)'); dg.addColorStop(0.3, 'rgba(2,2,6,.3)'); dg.addColorStop(0.65, 'rgba(2,2,6,.72)'); dg.addColorStop(1, 'rgba(2,2,6,.9)');
   dk.fillStyle = dg; dk.fillRect(0, 0, VW * 2, VH * 2);
-  // film grain tile
-  const gc = makeCanvas(128, 128), gx = gc.getContext('2d'), id = gx.createImageData(128, 128);
-  for (let i = 0; i < id.data.length; i += 4) { const v = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
-  gx.putImageData(id, 0, 0); grainPat = ctx.createPattern(gc, 'repeat');
   // door glow sprite (blur is expensive, so it is baked once)
   glowCache = makeCanvas(90 * SCALE, 110 * SCALE); const d = glowCache.getContext('2d'); d.scale(SCALE, SCALE);
   d.shadowColor = C.door; d.shadowBlur = 18; d.strokeStyle = C.door; d.lineWidth = 6;
@@ -977,7 +967,7 @@ function fire(tr) {
   if (tr.do === 'rise') {
     const sp = L.spikes.filter(s => s.g === tr.g), minX = Math.min(...sp.map(s => s.x));
     sp.forEach(s => { s.riseAt = L.t + d + ((s.x - minX) / T) * st; L.rising.push(s); });
-    sfx('trap'); sfx('stinger');
+    sfx('trap'); if (L.t - (L.stingT ?? -99) > 6) { L.stingT = L.t; sfx('stinger'); }
   } else if (tr.do === 'crumble') {
     const ts = L.groupTiles[tr.g], minX = Math.min(...ts.map(t => t.x));
     ts.forEach(t => t.crumbleAt = L.t + d + ((t.x - minX) / T) * st);
@@ -1567,7 +1557,6 @@ function updateWraiths(dt) {
         w.face = dir;
         if (!solidAt(nx + dir * 9, w.y - 10) && !solidAt(nx + dir * 9, w.y + 8)) w.x = nx;
         const before = Math.floor(w.walk / Math.PI); w.walk += (12 + sp) * dt * 0.09;
-        if (Math.floor(w.walk / Math.PI) !== before && Math.abs(dx) < 300) sfx('scrape', pan);
         if (!nearest || Math.abs(dx) < Math.abs(nearest.dx)) nearest = { dx, pan };
       }
       w.vy = Math.min(w.vy + GRAV * dt, 900);                  // they walk on the ground and can fall into pits
@@ -1587,7 +1576,7 @@ function updateWraiths(dt) {
     }
   }
   groanT -= dt;                                            // the nearest zombie keeps moaning, from its side of the screen
-  if (nearest && groanT <= 0 && Math.abs(nearest.dx) < 480) { groanT = 2.2 + Math.random() * 2.5; sfx('groan', nearest.pan); }
+  if (nearest && groanT <= 0 && Math.abs(nearest.dx) < 420) { groanT = 6 + Math.random() * 4; sfx('groan', nearest.pan); }
 }
 function die() {
   if (state !== 'play') return;
@@ -1607,7 +1596,7 @@ function win() {
 }
 
 function dust(x, y, n, dir) {
-  if (particles.length > 260) return;
+  if (particles.length > (isTouch ? 140 : 260)) return;
   for (let i = 0; i < n; i++) {
     const side = dir || (i % 2 ? 1 : -1);
     particles.push({ x: x + (Math.random() - .5) * 8, y: y - 2, vx: side * (30 + Math.random() * 70), vy: -(15 + Math.random() * 45),
@@ -1615,7 +1604,8 @@ function dust(x, y, n, dir) {
   }
 }
 function burst(x, y, color, n, sp) {
-  if (particles.length > 260) return;
+  if (particles.length > (isTouch ? 140 : 260)) return;
+  if (isTouch) n = Math.ceil(n * 0.6);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, v = sp * (0.3 + Math.random() * 0.7);
     particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120, life: 0.5 + Math.random() * 0.5, s: 3 + Math.random() * 4, color });
@@ -1640,12 +1630,14 @@ function update(dt) {
   if (state === 'play' || state === 'win') { L.cam += (camTarget() - L.cam) * Math.min(1, dt * 6); L.camY += (camTargetY() - L.camY) * Math.min(1, dt * 5); }
 }
 
-let last = performance.now(), acc = 0;
+let last = performance.now(), acc = 0, lowFx = false, slowT = 0;
 const testMode = /[?&]test\b/.test(location.search);
 function frame(now) {
   if (appHidden) { last = now; requestAnimationFrame(frame); return; }      // nothing runs while in the background
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (!testMode) { acc += dt; let n = 0; while (acc >= STEP && n < 8) { update(STEP); acc -= STEP; n++; } if (n === 8) acc = 0; }
+  if (!testMode) { acc += dt; let n = 0; while (acc >= STEP && n < 4) { update(STEP); acc -= STEP; n++; } if (n === 4) acc = 0; }
+  // if a phone still can't keep up, drop the fog layer (the most expensive effect that's left)
+  if (isTouch && !lowFx && isInGame()) { slowT = dt > 0.026 ? slowT + dt : Math.max(0, slowT - dt * 0.5); if (slowT > 2) lowFx = true; }
   render(now / 1000);
   requestAnimationFrame(frame);
 }
@@ -1841,7 +1833,7 @@ function render(time) {
   ctx.globalAlpha = 1;
   ctx.restore();
 
-  if (fogCache) { const fo = (time * 14 + cam * 0.6) % W; ctx.globalAlpha = 0.75; for (let x = -fo; x < VW; x += W) ctx.drawImage(fogCache, x, 350 - camY, W, 180); ctx.globalAlpha = 1; }
+  if (fogCache && !lowFx) { const fo = (time * 14 + cam * 0.6) % W; ctx.globalAlpha = 0.75; for (let x = -fo; x < VW; x += W) ctx.drawImage(fogCache, x, 350 - camY, W, 180); ctx.globalAlpha = 1; }
 
   // lantern darkness: you only see clearly around the skeleton (lightning lifts it for a moment)
   if (darkCache) {
@@ -1924,11 +1916,6 @@ function render(time) {
   if (state === 'dead') {
     ctx.textAlign = 'center'; ctx.fillStyle = '#e23a48'; ctx.font = '900 34px ui-rounded,system-ui,sans-serif';
     ctx.fillText(quip, HUDW / 2, Math.max(110, HUDH * 0.28));
-  }
-  if (grainPat) {                                      // film grain over everything
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.06;
-    ctx.translate(-(Math.random() * 128) | 0, -(Math.random() * 128) | 0); ctx.fillStyle = grainPat; ctx.fillRect(0, 0, cv.width + 128, cv.height + 128);
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
   }
 }
 
@@ -2064,7 +2051,7 @@ function drawBoss(time) {
   const sink = !B.alive ? (1 - B.dying / 1.6) : 0;
   ctx.save(); ctx.translate(B.x, B.y + sink * 40); ctx.scale(f, 1);
   if (!B.alive) { ctx.globalAlpha = B.dying / 1.6; ctx.rotate(sink * 0.6); }
-  if (B.inv > 0 && Math.floor(B.inv * 20) % 2 === 0) ctx.filter = 'brightness(2.2)';
+  if (B.inv > 0 && Math.floor(B.inv * 20) % 2 === 0) ctx.globalAlpha *= 0.45;   // hit flicker (no slow canvas filters)
   const S = 2.65; ctx.scale(S, S);                    // drawn at our skeleton's scale, then enlarged
   const breathe = Math.sin(time * 2) * 0.6, walk = st === 'walk' ? Math.sin(time * 6) : 0;
   const slump = st === 'stunned' ? 4 : 0, raise = st === 'slam' ? Math.min(1, k / B.windup) : 0;
@@ -2104,7 +2091,6 @@ function drawBoss(time) {
   ctx.beginPath(); ctx.moveTo(-8, -6); ctx.lineTo(-8, -13); ctx.lineTo(-5, -9); ctx.lineTo(-2, -15); ctx.lineTo(1, -9); ctx.lineTo(4, -15); ctx.lineTo(7, -9); ctx.lineTo(9, -13); ctx.lineTo(9, -6); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#c02040'; ctx.beginPath(); ctx.arc(0.5, -8.5, 1.4, 0, 7); ctx.fill();
   ctx.restore();
-  ctx.filter = 'none';
   // warning: the club is coming down
   if (B.alive && st === 'slam' && !B.did) { ctx.save(); ctx.globalAlpha = 0.4 + 0.4 * Math.sin(time * 30); ctx.fillStyle = '#ff3b3b'; ctx.fillRect(B.x - 120, B.y - 3, 240, 3); ctx.restore(); }
 }
