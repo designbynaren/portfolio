@@ -454,7 +454,7 @@ const hasWings = () => !!save.relics.wings, hasBlade = () => !!save.relics.blade
 const FORMS = ['blade', 'hammer', 'rage', 'eye'];
 const FORM_NAME = { blade: 'Bone Blade', hammer: 'Mournhammer', rage: 'Grave Rage', eye: 'Soul Eye' };
 const formsOwned = () => FORMS.filter(f => save.relics[f]);
-if (/[?&]unlockall\b/.test(location.search)) { save.relics = { wings: true, blade: true, hammer: true, rage: true, eye: true }; save.unlocked = Math.max(save.unlocked, LEVELS.length); }
+if (/[?&]unlockall\b/.test(location.search) || location.hash === '#unlockall') { save.relics = { wings: true, blade: true, hammer: true, rage: true, eye: true }; save.unlocked = Math.max(save.unlocked, LEVELS.length); }
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
 /* ---------- audio: everything is synthesised, nothing is downloaded ---------- */
