@@ -150,11 +150,18 @@
   #touch .tbtn.ripple::after{animation:ring .38s ease-out}
   @keyframes ring{from{transform:scale(1);border-color:rgba(255,110,120,.85)}to{transform:scale(1.5);border-color:rgba(255,110,120,0)}}
   #touch .tbtn.jump{width:90px;height:90px}
-  #touch .tbtn.blade{display:none;width:64px;height:64px;margin-bottom:34px;touch-action:none}
-  body.has-blade #touch .tbtn.blade{display:grid}
-  #touch .tbtn.blade svg{width:46%;height:46%}
-  #actPad{align-items:flex-end;position:relative}
-  #touch .tbtn.swap{display:none;position:absolute;width:46px;height:46px;right:4px;top:-58px}
+  /* right thumb: jump bottom-right, hands to its left, weapon above-left, power above */
+  #actPad{position:relative;width:196px;height:176px;display:block}
+  #actPad .tbtn{position:absolute}
+  #touch .tbtn.jump{right:0;bottom:0}
+  #touch .tbtn.act{display:none;width:62px;height:62px;touch-action:none}
+  body.has-blade #touch .tbtn.act{display:grid}
+  #touch .tbtn.attack{right:100px;bottom:4px;width:66px;height:66px}
+  #touch .tbtn.special{right:96px;bottom:84px}
+  #touch .tbtn.power{right:12px;bottom:104px}
+  #touch .tbtn.act.cool{opacity:.35}
+  #touch .tbtn.act svg{width:50%;height:50%}
+  #touch .tbtn.swap{display:none;width:42px;height:42px;right:160px;bottom:136px}
   body.has-forms #touch .tbtn.swap{display:grid}
   #touch .tbtn.swap svg{width:52%;height:52%}
   #touch .tbtn.jump svg{width:48%;height:48%}
@@ -166,7 +173,6 @@
       padding:0 max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
     body.touch #touch .tbtn{width:72px;height:72px;opacity:.9}
     body.touch #touch .tbtn.jump{width:88px;height:88px}
-    body.touch #touch .tbtn.blade{width:62px;height:62px}
   }
   /* portrait phones: the game sits on top, controls get their own panel underneath */
   @media (orientation:portrait){
@@ -229,8 +235,8 @@
           <button id="btnHelp" class="mini" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2v2zm2.1-7.8-.9.9c-.7.7-1.2 1.3-1.2 2.9h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3a1.9 1.9 0 0 0-1.4-3.3 2 2 0 0 0-2 2H8a4 4 0 0 1 8 0c0 .9-.4 1.7-.9 2.1z" fill="currentColor"/></svg><span>Controls</span></button>
         </div>
         <div id="helpPanel" class="hidden">
-          <span class="desk"><b>← →</b> move · <b>Z</b>/<b>A</b> (or Space) jump, tap for a small hop · <b>X</b>/<b>S</b> attack, press again for a combo · <b>C</b>/<b>D</b> special move · <b>V</b>/<b>F</b> switch weapon · R restart · Esc pause · M mute</span>
-          <span class="mob">Hold ◀ ▶ to move (slide your thumb between them) · ▲ to jump, tap it quickly for a small hop · sword button to attack · swap button to switch weapon</span>
+          <span class="desk"><b>← →</b> move · <b>Z</b>/<b>A</b> (or Space) jump, tap for a small hop · <b>X</b>/<b>S</b> hands / combo · <b>C</b>/<b>D</b> weapon · <b>V</b>/<b>F</b> power · <b>Q</b>/<b>E</b> switch character · R restart · Esc pause · M mute</span>
+          <span class="mob">Hold ◀ ▶ to move (slide your thumb between them) · ▲ to jump, tap it quickly for a small hop · three buttons: hands, weapon, power · small swap button to switch character</span>
         </div>
       </nav>
       <a class="home" href="../index.html">← back to portfolio</a>
@@ -294,7 +300,9 @@
     <div class="tip">Turn your phone sideways for a bigger view</div>
     <div class="pad" id="actPad">
       <div class="tbtn swap" id="swapBtn" role="button" aria-label="Switch weapon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3 1.4-1.4L22 8l-5.6 5.4L15 12l3-3H7zm10 10H6l3 3-1.4 1.4L2 16l5.6-5.4L9 12l-3 3h11z" fill="currentColor"/></svg></div>
-      <div class="tbtn blade" data-k="attack" role="button" aria-label="Sword"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 2.5l2 2-9.2 9.2 1.6 1.6-1.4 1.4-1.6-1.6-2.3 2.3.9.9-1.4 1.4-3-3 1.4-1.4.9.9 2.3-2.3-1.6-1.6 1.4-1.4 1.6 1.6z" fill="currentColor"/><circle cx="4" cy="20" r="1.6" fill="currentColor"/></svg></div>
+      <div class="tbtn act power" data-k="power" role="button" aria-label="Power"></div>
+      <div class="tbtn act special" data-k="special" role="button" aria-label="Weapon"></div>
+      <div class="tbtn act attack" data-k="attack" role="button" aria-label="Hands"></div>
       <div class="tbtn jump" id="jumpBtn" data-k="jump" role="button" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 15.5 L12 6.5 L19.5 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
     </div>
   </div>
@@ -707,11 +715,11 @@ function ambientTick(dt) {
 function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
 /* ---------- input ---------- */
-const keys = { left:false, right:false, jump:false, attack:false, special:false, swap:false };
-let jumpPressed = false, attackPressed = false, specialPressed = false, swapPressed = false;
+const keys = { left:false, right:false, jump:false, attack:false, special:false, power:false, swap:false };
+let jumpPressed = false, attackPressed = false, specialPressed = false, powerPressed = false, swapPressed = false;
 // Arrows move. Left hand on Z X C (or A S D, same thing): jump, sword, special.
 const KEYMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'jump', Space:'jump', KeyZ:'jump', KeyA:'jump',
-  KeyX:'attack', KeyS:'attack', KeyC:'special', KeyD:'special', KeyV:'swap', KeyF:'swap' };
+  KeyX:'attack', KeyS:'attack', KeyC:'special', KeyD:'special', KeyV:'power', KeyF:'power', KeyQ:'swap', KeyE:'swap', Tab:'swap' };
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code];
   if (state === 'relic' && (e.code === 'Enter' || e.code === 'Space')) { e.preventDefault(); $('btnRelicOk').click(); return; }
@@ -725,7 +733,8 @@ addEventListener('keydown', e => {
            if (k === 'jump' && !keys.jump && !e.repeat) jumpPressed = true;
            if (k === 'attack' && !keys.attack && !e.repeat) attackPressed = true;
            if (k === 'special' && !keys.special && !e.repeat) specialPressed = true;
-           if (k === 'swap' && !keys.swap && !e.repeat) swapPressed = true; keys[k] = true; return; }
+           if (k === 'power' && !keys.power && !e.repeat) powerPressed = true;
+           if (k === 'swap' && !keys.swap && !e.repeat) swapPressed = true; keys[k] = true; if (k === 'swap') e.preventDefault(); return; }
   if (e.code === 'KeyR' && state === 'play') respawn(true);
   else if (e.code === 'Escape' || e.code === 'KeyP') { if (isInGame()) pause(); else if (state === 'levels' || state === 'relics') showMenu(); else if (state === 'menu' && paused) resume(); }
   else if (e.code === 'KeyM') toggleMute();
@@ -736,7 +745,8 @@ addEventListener('blur', () => { keys.left = keys.right = keys.jump = false; if 
 // touch: the move pad tracks each finger, so sliding from ◀ to ▶ switches direction without lifting
 const isTouch = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
 if (isTouch) document.body.classList.add('touch');
-const btnEls = { left: document.querySelector('[data-k=left]'), right: document.querySelector('[data-k=right]'), jump: document.querySelector('[data-k=jump]'), attack: document.querySelector('[data-k=attack]') };
+const btnEls = { left: document.querySelector('[data-k=left]'), right: document.querySelector('[data-k=right]'), jump: document.querySelector('[data-k=jump]'),
+  attack: document.querySelector('[data-k=attack]'), special: document.querySelector('[data-k=special]'), power: document.querySelector('[data-k=power]') };
 const moveFingers = new Map();
 function syncMove() {
   const dirs = new Set(moveFingers.values());
@@ -757,9 +767,13 @@ jumpPad.addEventListener('pointerdown', e => { e.preventDefault(); try { jumpPad
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpPad.addEventListener(ev, e => {
   jumpFingers.delete(e.pointerId); if (!jumpFingers.size) { keys.jump = false; btnEls.jump.classList.remove('on'); } });
 document.getElementById('swapBtn').addEventListener('pointerdown', e => { e.preventDefault(); swapPressed = true; pressFx(document.getElementById('swapBtn')); });
-btnEls.attack.addEventListener('pointerdown', e => { e.preventDefault(); try { btnEls.attack.setPointerCapture(e.pointerId); } catch (_) {}
-  attackPressed = true; keys.attack = true; pressFx(btnEls.attack); btnEls.attack.classList.add('on'); });
-for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) btnEls.attack.addEventListener(ev, () => { keys.attack = false; btnEls.attack.classList.remove('on'); });
+for (const k of ['attack', 'special', 'power']) {                   // the three action buttons
+  const el = btnEls[k];
+  el.addEventListener('pointerdown', e => { e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    if (k === 'attack') attackPressed = true; else if (k === 'special') specialPressed = true; else powerPressed = true;
+    keys[k] = true; pressFx(el); el.classList.add('on'); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) el.addEventListener(ev, () => { keys[k] = false; el.classList.remove('on'); });
+}
 addEventListener('contextmenu', e => { if (isInGame()) e.preventDefault(); });
 document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled) { sfx('click'); buzz(6); } startAmbience(); });
 // Going to the background (home button, app switch, screen off, another tab): pause the game,
@@ -875,7 +889,7 @@ function buildCaches() {
 /* ---------- world ---------- */
 let L = null, P = null, levelIndex = 0, state = 'menu', paused = false;
 let deaths = 0, levelDeaths = 0, levelTime = 0, cpIndex = -1;
-let stateT = 0, quip = '', particles = [], shake = 0, flash = 0, hitStop = 0, rings = [], bolts = [];
+let stateT = 0, quip = '', particles = [], shake = 0, flash = 0, hitStop = 0, rings = [], bolts = [], pproj = [];
 const isInGame = () => state === 'play' || state === 'dead' || state === 'win' || state === 'eaten';
 const EAT_TIME = 2.6;
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -943,8 +957,8 @@ function loadLevel(i, keepCp) {
   P = { x: sx, y: sy, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1,
         walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0, queued: 0, hp: 3, inv: 0, growlT: 3, ghosts: [],
         form: formsOwned().includes(save.form) ? save.form : (formsOwned()[0] || null), hammer: { state: 'hand' }, fx: 0, airJumps: 1, wingT: 0, atk: 0, atkCd: 0, atkType: null, atkDur: 1, combo: 0, comboT: 9, rot: 0, flipUsed: false, trail: [] };
-  jumpPressed = attackPressed = specialPressed = swapPressed = false; rings = []; bolts = [];
-  jumpPressed = false; particles = []; shake = 0; L.cam = camTarget(); L.camY = camTargetY();
+  jumpPressed = attackPressed = specialPressed = powerPressed = swapPressed = false; pproj = []; rings = []; bolts = [];
+  jumpPressed = false; particles = []; shake = 0; L.cam = camTarget(); L.camY = camTargetY(); syncButtons();
   L.ghost = L.def.ghost ? { x: P.x - 460, y: P.y - 80, speed: L.def.ghost, at: 1.4, a: 0, beat: 0, woke: false, talk: 2, armed: true, trail: [], scare: 0 } : null;
 }
 // on phones the camera may run a little past the level ends so the player and door never sit under the controls
@@ -1187,6 +1201,10 @@ function updatePlayer(dt) {
   }
   if (!P.atkType && P.queued && P.atkCd <= 0) { P.queued--; nextAttack(); }
   if (specialPressed) { specialPressed = false; if (P.form) specialMove(); }
+  P.powerCd = Math.max(0, (P.powerCd || 0) - dt);
+  if (powerPressed) { powerPressed = false; if (P.form) powerMove(); }
+  updatePProj(dt);
+  if (btnEls.power) btnEls.power.classList.toggle('cool', P.powerCd > 0);
   if (P.form === 'rage') { P.growlT -= dt; if (P.growlT <= 0) { P.growlT = 3 + Math.random() * 4; sfx('growl'); } }
   updateHammer(dt);
   if (P.atkType) updateAttack(dt);
@@ -1246,38 +1264,83 @@ const MOVES = {                                     // dur, cooldown, sound, cha
   cross:    { dur: 0.17, cd: 0.03, snd: 'punch', chain: true },
   uppercut: { dur: 0.28, cd: 0.08, snd: 'punch', chain: true },
   pound:    { dur: 9,    cd: 0.2, snd: 'growl' },
-  beam:     { dur: 0.36, cd: 0.1, snd: 'beam', chain: true },
-  sweep:    { dur: 1.1,  cd: 0.3, snd: 'beam2' },
+  storm:    { dur: 0.75, cd: 0.2, snd: 'zap' },
+  rock:     { dur: 0.5,  cd: 0.15, snd: 'growl' },
+  pulse:    { dur: 0.6,  cd: 0.15, snd: 'beam' },
+  nova:     { dur: 0.45, cd: 0.2, snd: 'beam2' },
+  phantoms: { dur: 0.3,  cd: 0.15, snd: 'thrust' },
 };
 const ease = k => 1 - Math.pow(1 - k, 3);             // fast start, soft finish
 const inAir = () => !P.ground && P.coyote <= 0;
+const BTN_ICONS = {"fist": "<svg viewBox=\"0 0 24 24\"><path d=\"M6 10a2 2 0 0 1 4 0V8a2 2 0 0 1 4 0v1a2 2 0 0 1 4 0v5c0 4-3 7-7 7s-6-3-6-6v-3a1.5 1.5 0 0 1 1-2z\" fill=\"currentColor\"/></svg>", "sword": "<svg viewBox=\"0 0 24 24\"><path d=\"M19.5 2.5l2 2-9.2 9.2 1.6 1.6-1.4 1.4-1.6-1.6-2.3 2.3.9.9-1.4 1.4-3-3 1.4-1.4.9.9 2.3-2.3-1.6-1.6 1.4-1.4 1.6 1.6z\" fill=\"currentColor\"/></svg>", "whirl": "<svg viewBox=\"0 0 24 24\"><path d=\"M12 3a9 9 0 1 0 9 9h-3a6 6 0 1 1-6-6V3zm0 6a3 3 0 1 0 3 3h-3z\" fill=\"currentColor\"/></svg>", "blades3": "<svg viewBox=\"0 0 24 24\"><path d=\"M3 12h13l-3-3 1.4-1.4L20 12l-5.6 4.4L13 15l3-3zM3 6l10 2-1 2zM3 18l10-2-1-2z\" fill=\"currentColor\"/></svg>", "hammerthrow": "<svg viewBox=\"0 0 24 24\"><path d=\"M3 5h9v6H3z\" fill=\"currentColor\"/><path d=\"M6.5 11h2v9h-2z\" fill=\"currentColor\"/><path d=\"M15 8h6M17 5l4 3-4 3\" stroke=\"currentColor\" stroke-width=\"2\" fill=\"none\"/></svg>", "bolt": "<svg viewBox=\"0 0 24 24\"><path d=\"M13 2 4 14h6l-2 8 10-13h-6z\" fill=\"currentColor\"/></svg>", "smash": "<svg viewBox=\"0 0 24 24\"><path d=\"M8 3h8v6h-2v4h-4V9H8z\" fill=\"currentColor\"/><path d=\"M2 20h20M5 16l-2 3M19 16l2 3M12 15v3\" stroke=\"currentColor\" stroke-width=\"2\"/></svg>", "rock": "<svg viewBox=\"0 0 24 24\"><path d=\"M4 15l2-7 7-3 7 5-2 8-9 2z\" fill=\"currentColor\"/></svg>", "pulse": "<svg viewBox=\"0 0 24 24\"><circle cx=\"5\" cy=\"12\" r=\"2.5\" fill=\"currentColor\"/><circle cx=\"12\" cy=\"12\" r=\"2.5\" fill=\"currentColor\"/><circle cx=\"19\" cy=\"12\" r=\"2.5\" fill=\"currentColor\"/></svg>", "orb": "<svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"6\" fill=\"currentColor\"/><path d=\"M12 1v4M12 19v4M1 12h4M19 12h4M4 4l3 3M17 17l3 3M20 4l-3 3M7 17l-3 3\" stroke=\"currentColor\" stroke-width=\"1.8\"/></svg>"};
+const FORM_BTNS = { blade: ['sword', 'whirl', 'blades3'], hammer: ['fist', 'hammerthrow', 'bolt'], rage: ['fist', 'smash', 'rock'], eye: ['fist', 'pulse', 'orb'] };
+function syncButtons() {
+  const set = FORM_BTNS[P && P.form] || FORM_BTNS.blade;
+  ['attack', 'special', 'power'].forEach((k, i) => { if (btnEls[k].dataset.icon !== set[i]) { btnEls[k].innerHTML = BTN_ICONS[set[i]]; btnEls[k].dataset.icon = set[i]; } });
+}
 function switchForm() {
   const owned = formsOwned(); if (owned.length < 2 || P.atkType) return;
-  const old = P.form; P.form = owned[(owned.indexOf(P.form) + 1) % owned.length]; save.form = P.form; persist();
+  const old = P.form; P.form = owned[(owned.indexOf(P.form) + 1) % owned.length]; save.form = P.form; persist(); syncButtons();
   if (P.hammer.state !== 'hand') P.hammer = { state: 'hand' };
   P.fx = 0.5; sfx('swap'); burst(P.x + P.w / 2, P.y + 8, P.form === 'rage' ? '#7dff6a' : P.form === 'eye' ? '#ffd45a' : P.form === 'hammer' ? '#9fd8ff' : C.glow, 16, 200);
   if (P.form === 'rage') { sfx('roar'); shake = 6; }
   if (old === 'rage') P.sx = P.sy = 0.85;
 }
+const POWER_CD = { blade: 1.2, hammer: 3, rage: 1.1, eye: 1.6 };   // seconds between uses of each power
 function nextAttack() {
   const f = P.form;
   if (f === 'blade') {
     if (inAir()) return startAttack(P.flipUsed ? 'plunge' : 'flip');
     P.combo = P.comboT < 0.5 ? (P.combo % 4) + 1 : 1; return startAttack(['slash', 'backhand', 'thrust', 'spin'][P.combo - 1]);
   }
-  if (f === 'hammer') { if (P.hammer.state !== 'hand') return; return startAttack(inAir() ? 'thunder' : 'smash'); }
+  if (f === 'hammer') {                               // fists and hammer: punch, then a hammer smash
+    if (inAir() && P.hammer.state === 'hand') return startAttack('thunder');
+    P.combo = P.comboT < 0.5 ? (P.combo % 2) + 1 : 1;
+    return startAttack(P.combo === 2 && P.hammer.state === 'hand' ? 'smash' : 'jab');
+  }
   if (f === 'rage') {
     if (inAir()) return startAttack('pound');
     P.combo = P.comboT < 0.45 ? (P.combo % 3) + 1 : 1; return startAttack(['jab', 'cross', 'uppercut'][P.combo - 1]);
   }
-  if (f === 'eye') return startAttack('beam');
+  if (f === 'eye') { P.combo = P.comboT < 0.45 ? (P.combo % 2) + 1 : 1; return startAttack(P.combo === 1 ? 'jab' : 'cross'); }
 }
 function specialMove() {
   const f = P.form;
   if (f === 'blade') { if (P.atkType === 'plunge' || P.atkType === 'cyclone') return; P.queued = 0; return startAttack(inAir() ? 'plunge' : 'cyclone'); }
   if (f === 'hammer') { const h = P.hammer; if (h.state === 'hand') { if (!P.atkType) throwHammer(); } else if (h.state === 'flying') { h.state = 'returning'; h.hits = new Set(); sfx('zap'); } return; }
   if (f === 'rage') { if (P.atkType === 'pound') return; P.queued = 0; return startAttack('pound'); }
-  if (f === 'eye') { if (P.atkType === 'sweep') return; P.queued = 0; return startAttack('sweep'); }
+  if (f === 'eye') { if (P.atkType) return; P.queued = 0; return startAttack('pulse'); }
+}
+// the third button: each character's power, with its own cooldown
+function powerMove() {
+  if (P.atkType || P.powerCd > 0) return;
+  const f = P.form; P.queued = 0;
+  if (f === 'blade') startAttack('phantoms');
+  else if (f === 'hammer') startAttack('storm');
+  else if (f === 'rage') startAttack('rock');
+  else if (f === 'eye') startAttack('nova');
+  P.powerCd = POWER_CD[f];
+}
+// player projectiles: ghost swords, rocks, energy bolts, the nova orb
+function shoot(o) { pproj.push({ g: 0, r: 8, dmg: 1, life: 1, pierce: false, ...o, hits: new Set(), t: 0 }); }
+function updatePProj(dt) {
+  for (const p of pproj) {
+    p.t += dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    const saved = P.hits; P.hits = p.hits;
+    const hit = strike((x, y, pad) => Math.hypot(x - p.x, y - p.y) < p.r + 12 + pad, p.dmg);
+    P.hits = saved;
+    const wall = solidAt(p.x, p.y);
+    if ((hit && !p.pierce) || wall || p.t > p.life || p.y > H + 40) {
+      p.dead = true;
+      if (p.kind === 'nova' || p.kind === 'rock') {                    // bursts on impact
+        const r = p.kind === 'nova' ? 90 : 40;
+        rings.push({ x: p.x, y: p.y + 10, r: 6, max: r, rage: p.kind === 'rock' }); sfx(p.kind === 'nova' ? 'zap' : 'impact');
+        const saved2 = P.hits; P.hits = new Set(); strike((x, y, pad) => Math.hypot(x - p.x, y - p.y) < r + pad, p.dmg); P.hits = saved2;
+        burst(p.x, p.y, p.kind === 'nova' ? '#ffd45a' : '#8a8578', 16, 240); shake = Math.max(shake, 5);
+      } else burst(p.x, p.y, p.kind === 'bolt' ? '#ffd45a' : C.glow, 5, 120);
+    }
+  }
+  if (pproj.length) pproj = pproj.filter(p => !p.dead);
 }
 function startAttack(type) {
   const m = MOVES[type]; P.atkType = type; P.atkDur = m.dur; P.atk = 0; P.hits = new Set(); P.trail = []; P.comboT = 0; P.tick = 0; P.landed = false;
@@ -1288,6 +1351,8 @@ function startAttack(type) {
   if (type === 'plunge' || type === 'thunder') { P.vy = 860; P.vx *= 0.4; }
   if (type === 'uppercut') { P.vy = Math.min(P.vy, -300); }
   if (type === 'pound') { if (P.ground || P.coyote > 0) { P.vy = -470; P.ground = false; } P.poundDive = false; }
+  if (type === 'pulse') P.shots = 0;
+  if (type === 'storm') { P.vy = Math.min(P.vy, -120); }
 }
 function updateAttack(dt) {
   const t = P.atkType, m = MOVES[t]; P.atk += dt;
@@ -1323,17 +1388,41 @@ function updateAttack(dt) {
   }
   // --- rage ---
   else if (t === 'jab' || t === 'cross' || t === 'uppercut') {
-    if (k > 0.25 && k < 0.75) strike((x, y, pad) => (x - cx) * P.face > -6 && (x - cx) * P.face < 48 + pad && Math.abs(y - cy) < (t === 'uppercut' ? 40 : 26) + pad, 2);
+    if (k > 0.25 && k < 0.75) strike((x, y, pad) => (x - cx) * P.face > -6 && (x - cx) * P.face < 46 + pad && Math.abs(y - cy) < (t === 'uppercut' ? 40 : 26) + pad, P.form === 'rage' ? 2 : 1);
   } else if (t === 'pound') {
     if (!P.poundDive && P.vy > -60) { P.poundDive = true; }
     if (P.poundDive) P.vy = Math.max(P.vy, 900);
     if (P.ground && P.poundDive) { endAttack(); thunderSlam(cx, P.y + P.h, 135, 2, true); }
     return;
   }
-  // --- soul eye ---
-  else if (t === 'beam' || t === 'sweep') {
-    P.tick -= dt; if (P.tick <= 0) { P.tick = 0.12; P.hits = new Set(); }
-    const b = beamGeom(); strike((x, y, pad) => segDist(x, y, b.x0, b.y0, b.x1, b.y1) < 15 + pad, 1);
+  // --- powers and ranged moves ---
+  else if (t === 'storm') {                           // lightning strikes every enemy around
+    if (k >= 0.3 && !P.landed) {
+      P.landed = true; let n = 0; sfx('thunder'); flash = 0.3; shake = 10;
+      const zap = (x, y) => { bolts.push({ x, y0: L.camY - 20, y1: y, t: 0.35 }); burst(x, y, '#9fd8ff', 8, 200); n++; };
+      for (const w of L.wraiths) if (w.alive && Math.hypot(w.x - cx, w.y - cy) < 360) { zap(w.x, w.y + 12); P.hits.add(w); killWraith(w); }
+      const B = L.boss; if (B && B.alive && B.awake && Math.abs(B.x - cx) < 420) { zap(B.x, B.y); hurtBoss(3); }
+      const G = L.ghost; if (G && G.a > 0.5 && !G.gone && Math.hypot(G.x - cx, G.y - cy) < 420) { zap(G.x, G.y); G.gone = 6; G.a = 0; }
+      if (!n) for (let i = 0; i < 3; i++) zap(cx + P.face * (60 + i * 70), P.y + P.h);   // nothing near: strike the ground ahead
+    }
+  } else if (t === 'rock') {                          // rip a rock out of the ground, then hurl it
+    if (k >= 0.45 && !P.landed) {
+      P.landed = true; const x0 = cx + P.face * 6, y0 = P.y - 18, g = 900;
+      // aim at the nearest enemy (or the boss) in front, otherwise a flat throw
+      let tgt = null, best = 380;
+      for (const w of L.wraiths) if (w.alive) { const d = (w.x - cx) * P.face; if (d > 10 && d < best && Math.abs(w.y - cy) < 160) { best = d; tgt = { x: w.x, y: w.y }; } }
+      const B = L.boss; if (B && B.alive && B.awake) { const d = (B.x - cx) * P.face; if (d > 10 && d < best) tgt = { x: B.x, y: B.y - B.h / 2 }; }
+      let vx = P.face * 400, vy = -160;
+      if (tgt) { const t = Math.max(0.18, Math.abs(tgt.x - x0) / 400); vy = (tgt.y - y0 - 0.5 * g * t * t) / t; }
+      shoot({ kind: 'rock', x: x0, y: y0, vx, vy, g, r: 10, dmg: 2, life: 2 }); sfx('hswing');
+    }
+  } else if (t === 'pulse') {                         // energy bursts: fire, stop, fire, stop, fire
+    const shots = Math.floor(k / 0.3) + 1; P.shots = P.shots || 0;
+    while (P.shots < Math.min(3, shots)) { P.shots++; shoot({ kind: 'bolt', x: cx + P.face * 6, y: P.y - 5, vx: P.face * 560, vy: 0, r: 6, dmg: 1, life: 0.7 }); sfx('zap'); }
+  } else if (t === 'nova') {
+    if (k >= 0.35 && !P.landed) { P.landed = true; shoot({ kind: 'nova', x: cx + P.face * 10, y: P.y - 5, vx: P.face * 300, vy: 0, r: 12, dmg: 2, life: 1.1 }); }
+  } else if (t === 'phantoms') {                      // three ghost swords fanned out
+    if (!P.landed) { P.landed = true; for (const a of [-0.22, 0, 0.22]) shoot({ kind: 'blade', x: cx + P.face * 10, y: cy - 2, vx: Math.cos(a) * 520 * P.face, vy: Math.sin(a) * 520, r: 9, dmg: 1, life: 0.75, pierce: true }); }
   }
   if (k >= 1) endAttack();
 }
@@ -1820,7 +1909,7 @@ function render(time) {
       if (P.form === 'rage') drawRagePlayer(time); else drawPlayer(time);
       if (P.form === 'hammer') drawHelm();
       if (P.form === 'eye') drawGem(time);
-      if (P.form === 'rage') drawFists();
+      drawFists();
       ctx.restore();
     }
     if (P.form === 'blade') drawBlade();
@@ -1848,7 +1937,7 @@ function render(time) {
   if (!L.door.hidden) drawDoor(L.door, time, false);
   drawGhost(time);
   drawWraiths(time);
-  drawBoss(time); drawBossFx(time); drawBeam(time); drawRings(); drawBolts(time);
+  drawBoss(time); drawBossFx(time); drawPProj(time); drawRings(); drawBolts(time);
   if (state === 'eaten') {
     const u = Math.max(0, Math.min(1, (stateT - 0.32) / 0.4));               // pulled into the mouth, spinning and shrinking
     if (u < 1) {
@@ -1897,7 +1986,7 @@ function render(time) {
       ctx.beginPath(); ctx.moveTo(x + 7, y + 13); ctx.bezierCurveTo(x - 4, y + 5, x + 1, y - 3, x + 7, y + 3); ctx.bezierCurveTo(x + 13, y - 3, x + 18, y + 5, x + 7, y + 13); ctx.fill();
     }
     if (P.form) { ctx.font = '700 12px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.muted; ctx.textAlign = 'left';
-      ctx.fillText(FORM_NAME[P.form] + (formsOwned().length > 1 ? (touchLayout ? '' : '  ·  V to switch') : ''), hx + 66, 96); }
+      ctx.fillText(FORM_NAME[P.form] + (formsOwned().length > 1 ? (touchLayout ? '' : '  ·  Q to switch') : ''), hx + 66, 96); }
     const B = L.boss;
     if (B && B.awake && (B.alive || B.dying > 0)) {
       const bw = Math.min(360, HUDW * 0.5), bx = HUDW / 2 - bw / 2, by = touchLayout ? 20 : 26;
@@ -1980,13 +2069,13 @@ function drawHammer(time) {
   let ang = f * 2.4;                                  // resting: held low behind, head up
   if (t === 'smash') { const k = ease(Math.min(1, P.atk / P.atkDur)); ang = f * (-2.6 + k * 4.4) + Math.PI; }
   if (t === 'thunder') ang = Math.PI;
+  if (t === 'storm') ang = 0;                          // raised to the sky
+  if (t === 'storm') { head(cx + f * 4, cy - 16, Math.PI, 1); return; }
   head(cx + f * 7, cy + 2, ang + (t === 'smash' || t === 'thunder' ? 0 : Math.PI), glow);
 }
 function drawRagePlayer(time) {                       // the same skeleton, swollen, green and furious
   const keep = { bone: C.bone, boneShade: C.boneShade, limb: C.limb, glow: C.glow };
   C.bone = '#8fd46a'; C.boneShade = '#5f9a44'; C.limb = '#8fd46a'; C.glow = '#ff5a2a';
-  ctx.save(); ctx.globalAlpha = 0.25 + 0.1 * Math.sin(time * 8); ctx.fillStyle = '#5bff4a';
-  ctx.beginPath(); ctx.ellipse(P.x + P.w / 2, P.y + P.h - 14, 18, 20, 0, 0, 7); ctx.fill(); ctx.restore();
   drawPlayer(time);
   Object.assign(C, keep);
   const s2 = skullPos(), f = P.face;                  // angry brows
@@ -1995,14 +2084,21 @@ function drawRagePlayer(time) {                       // the same skeleton, swol
   ctx.moveTo(s2.x + f * 1.3 + 5, s2.y - 4.6); ctx.lineTo(s2.x + f * 1.3 + 1.4, s2.y - 2.8); ctx.stroke(); ctx.restore();
 }
 function drawFists() {
-  const t = P.atkType; if (t !== 'jab' && t !== 'cross' && t !== 'uppercut' && t !== 'pound') return;
+  const t = P.atkType; if (t !== 'jab' && t !== 'cross' && t !== 'uppercut' && t !== 'pound' && t !== 'rock') return;
+  const green = P.form === 'rage';
   const f = P.face, cx = P.x + P.w / 2, cy = P.y + P.h / 2, k = Math.min(1, P.atk / P.atkDur), reach = Math.sin(k * Math.PI);
   let fx = cx + f * (8 + reach * 22), fy = cy - 2;
   if (t === 'uppercut') { fx = cx + f * (8 + reach * 10); fy = cy + 4 - reach * 26; }
   if (t === 'pound') { fx = cx + f * 6; fy = cy - 16; }
-  ctx.save(); ctx.fillStyle = '#8fd46a'; ctx.strokeStyle = '#3e6b2a'; ctx.lineWidth = 1.2;
+  if (t === 'rock') {                                  // the rock, lifted overhead before the throw
+    if (k < 0.45) { const ry = cy - 4 - Math.min(1, k / 0.35) * 22; ctx.save(); ctx.fillStyle = '#6e695f'; ctx.beginPath();
+      ctx.moveTo(cx - 9, ry + 4); ctx.lineTo(cx - 7, ry - 6); ctx.lineTo(cx + 3, ry - 9); ctx.lineTo(cx + 10, ry - 2); ctx.lineTo(cx + 7, ry + 6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8a8578'; ctx.fillRect(cx - 4, ry - 5, 5, 3); ctx.restore(); }
+    return;
+  }
+  ctx.save(); ctx.fillStyle = green ? '#8fd46a' : C.bone; ctx.strokeStyle = green ? '#3e6b2a' : '#8d866f'; ctx.lineWidth = 1.2;
   roundRect(fx - 5, fy - 4.5, 10, 9, 3); ctx.fill(); ctx.stroke();
-  if (reach > 0.6 && t !== 'pound') { ctx.globalAlpha = 0.5; ctx.strokeStyle = '#c8ff9a'; ctx.beginPath(); ctx.arc(fx, fy, 9, 0, 7); ctx.stroke(); }
+  if (reach > 0.6 && t !== 'pound') { ctx.globalAlpha = 0.45; ctx.strokeStyle = green ? '#c8ff9a' : P.form === 'eye' ? '#ffe9a0' : '#bfe6ff'; ctx.beginPath(); ctx.arc(fx, fy, 8, -0.8, 0.8); ctx.stroke(); }
   ctx.restore();
 }
 function drawGem(time) {                              // the Soul Eye gem with energy crackling around it
@@ -2028,6 +2124,16 @@ function drawBeam(time) {
   for (let i = 1; i <= n; i++) ctx.lineTo(b.x0 + dx * i + (Math.random() - .5) * 8, b.y0 + dy * i + (Math.random() - .5) * 8); ctx.stroke();
   ctx.fillStyle = '#fff6d0'; ctx.beginPath(); ctx.arc(b.x1, b.y1, 5 * a, 0, 7); ctx.fill();
   ctx.restore();
+}
+function drawPProj(time) {
+  for (const p of pproj) {
+    ctx.save(); ctx.translate(p.x, p.y);
+    if (p.kind === 'rock') { ctx.rotate(p.t * 9); ctx.fillStyle = '#6e695f'; ctx.beginPath(); ctx.moveTo(-9, 4); ctx.lineTo(-7, -6); ctx.lineTo(3, -9); ctx.lineTo(10, -2); ctx.lineTo(7, 6); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#8a8578'; ctx.fillRect(-4, -5, 5, 3); }
+    else if (p.kind === 'bolt') { ctx.fillStyle = 'rgba(255,176,42,.35)'; ctx.beginPath(); ctx.ellipse(0, 0, 14, 6, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#fff3c0'; ctx.beginPath(); ctx.ellipse(0, 0, 8, 3, 0, 0, 7); ctx.fill(); }
+    else if (p.kind === 'nova') { const r = p.r + Math.sin(time * 20) * 2; ctx.fillStyle = 'rgba(255,212,90,.3)'; ctx.beginPath(); ctx.arc(0, 0, r + 7, 0, 7); ctx.fill(); ctx.fillStyle = '#ffd45a'; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.fillStyle = '#fffbe8'; ctx.beginPath(); ctx.arc(0, 0, r * 0.45, 0, 7); ctx.fill(); }
+    else if (p.kind === 'blade') { ctx.rotate(Math.atan2(p.vy, p.vx) + Math.PI / 2); ctx.globalAlpha = 1 - p.t / p.life * 0.6; ctx.fillStyle = 'rgba(141,255,196,.35)'; ctx.fillRect(-4, -16, 8, 32); ctx.fillStyle = '#dffff0'; ctx.beginPath(); ctx.moveTo(-1.8, 10); ctx.lineTo(1.8, 10); ctx.lineTo(1, -12); ctx.lineTo(0, -15); ctx.lineTo(-1, -12); ctx.closePath(); ctx.fill(); }
+    ctx.restore();
+  }
 }
 function drawRings() {
   for (const r of rings) {
@@ -2345,16 +2451,16 @@ const RELICS = [
     how: { desk: 'Press Z (or A, Space) again while you are in the air.', mob: 'Tap ▲ again while you are in the air.' } },
   { id: 'blade', name: 'Bone Blade', level: 4, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M38 4l6 6-19 19 3 3-3 3-3-3-5 5 2 2-3 3-7-7 3-3 2 2 5-5-3-3 3-3 3 3z" fill="currentColor"/><circle cx="8" cy="40" r="3.5" fill="currentColor"/></svg>',
     text: 'The dead are rising: rotting skeletons shamble toward you and broken ones fly. Slash them apart or stomp on their skulls. The blade even scares the big ghost away for a few seconds.',
-    how: { desk: 'X or S: slash, backhand, dash thrust, spin. C or D: blade cyclone, or a plunge in the air.', mob: 'Tap the sword button next to ▲ to slash.' } },
+    how: { desk: 'X: slash combo · C: blade cyclone (plunge in the air) · V: three ghost swords.', mob: 'Sword: slash combo · whirl: cyclone · triple blades: ghost swords.' } },
   { id: 'hammer', name: 'Mournhammer', level: 5, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 6h28v14H10z" fill="currentColor"/><path d="M21 20h6v22h-6z" fill="currentColor"/><path d="M19 42h10v3H19z" fill="currentColor"/></svg>',
     text: 'A storm-forged hammer that answers when called. While you carry it you wear an iron helm and a battle cape. Smash, throw it and call it back, or dive with lightning.',
-    how: { desk: 'V or F to switch. X smash · C throw, C again to call it back · in the air X for a thunder slam.', mob: 'Swap button to switch. Sword button smashes, in the air it calls lightning.' } },
+    how: { desk: 'Q to switch. X: punch and hammer smash (thunder slam in the air) · C: throw, C again to call it back · V: lightning storm on every enemy near you.', mob: 'Fist: punch and smash · hammer: throw and call back · lightning: storm.' } },
   { id: 'rage', name: 'Grave Rage', level: 6, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4c8 0 14 6 14 14 0 5-2 8-5 10v6l-4-2-2 4-3-3-3 3-2-4-4 2v-6c-3-2-5-5-5-10C10 10 16 4 24 4zm-8 15 7 2-1 4-6-2zm16 0-7 2 1 4 6-2z" fill="currentColor"/></svg>',
     text: 'Fury takes over: the skeleton grows, turns green and jumps higher. Punch everything, and pound the ground hard enough to shake the graveyard.',
-    how: { desk: 'V or F to switch. X punch combo · C ground pound.', mob: 'Swap button to switch. Sword button punches, in the air it pounds.' } },
+    how: { desk: 'Q to switch. X: punch combo · C: smash the ground · V: rip up a rock and throw it.', mob: 'Fist: punches · smash: ground pound · rock: throw a rock.' } },
   { id: 'eye', name: 'Soul Eye', level: 7, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 12 34 24 24 36 14 24z" fill="currentColor"/><path d="M24 2v6M24 40v6M4 24h6M38 24h6M10 10l4 4M34 34l4 4M38 10l-4 4M10 38l4-4" stroke="currentColor" stroke-width="3"/></svg>',
-    text: 'A gem burns in the middle of your skull. Fire its energy as a beam that cuts through the dead.',
-    how: { desk: 'V or F to switch. X beam · C long sweeping beam.', mob: 'Swap button to switch. Sword button fires the beam.' } },
+    text: 'A gem burns in the middle of your skull. Fire its energy in bursts, or hurl an orb that explodes among the dead.',
+    how: { desk: 'Q to switch. X: punch combo · C: energy bursts (fire, stop, fire) · V: an exploding energy orb.', mob: 'Fist: punches · dots: energy bursts · orb: exploding orb.' } },
 ];
 function syncRelics() { document.body.classList.toggle('has-blade', formsOwned().length > 0); document.body.classList.toggle('has-forms', formsOwned().length > 1); }
 let relicQueue = [];
@@ -2486,7 +2592,7 @@ syncRelics(); loadLevel(0, false); resize(); showMenu(); requestAnimationFrame(f
 window.__TI = { keys, get state() { return state; }, get P() { return P; }, get L() { return L; }, get level() { return levelIndex; },
   get time() { return levelTime; }, press() { jumpPressed = true; }, attack() { attackPressed = true; },
   grant(on = true) { save.relics = on ? { wings: true, blade: true, hammer: true, rage: true, eye: true } : {}; save.form = 'blade'; syncRelics(); },
-  setForm(f) { P.form = f; }, get boss() { return L.boss; }, step(n) { for (let i = 0; i < n; i++) update(STEP); },
+  setForm(f) { P.form = f; syncButtons(); }, get boss() { return L.boss; }, step(n) { for (let i = 0; i < n; i++) update(STEP); },
   start: startFrom, LEVELS, render: () => render(performance.now() / 1000),
   view: () => ({ VW, VH, cam: L.cam, camY: L.camY }), sfx, storm, get hidden() { return appHidden; }, audioNodes: () => ({ actx, master }) };
 })();
