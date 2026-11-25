@@ -2,6 +2,7 @@ package com.designbynaren.trustissues;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -13,6 +14,9 @@ import android.webkit.WebViewClient;
 /** Full-screen WebView that runs the game bundled in assets/index.html. */
 public class MainActivity extends Activity {
     private WebView web;
+    private final Handler handler = new Handler();
+    // runs shortly after onPause so the page has time to pause itself and silence its audio first
+    private final Runnable freeze = new Runnable() { public void run() { web.onPause(); web.pauseTimers(); } };
 
     @Override
     protected void onCreate(Bundle state) {
@@ -44,8 +48,19 @@ public class MainActivity extends Activity {
 
     @Override public void onWindowFocusChanged(boolean hasFocus) { super.onWindowFocusChanged(hasFocus); if (hasFocus) hideSystemBars(); }
     @Override protected void onSaveInstanceState(Bundle out) { super.onSaveInstanceState(out); web.saveState(out); }
-    @Override protected void onPause() { web.loadUrl("javascript:window.__appPause&&window.__appPause()"); web.onPause(); super.onPause(); }
-    @Override protected void onResume() { super.onResume(); web.onResume(); hideSystemBars(); }
+    @Override protected void onPause() {
+        web.loadUrl("javascript:window.__appPause&&window.__appPause()");   // pause game + suspend audio
+        handler.postDelayed(freeze, 250);                                    // then freeze the WebView
+        super.onPause();
+    }
+    @Override protected void onResume() {
+        super.onResume();
+        handler.removeCallbacks(freeze);
+        web.resumeTimers(); web.onResume();
+        web.loadUrl("javascript:window.__appResume&&window.__appResume()");
+        hideSystemBars();
+    }
+    @Override protected void onDestroy() { handler.removeCallbacks(freeze); web.destroy(); super.onDestroy(); }
     @Override public void onBackPressed() { web.loadUrl("javascript:window.__appBack&&window.__appBack()"); }
 
     /** Lets the page close the app from the main menu. */

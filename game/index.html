@@ -399,6 +399,7 @@ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.unlocked)
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
 /* ---------- audio: everything is synthesised, nothing is downloaded ---------- */
+let appHidden = false;
 let actx = null, master = null, revIn = null, noiseBuf = null, ambience = false, muted = false;
 try { muted = localStorage.getItem(SAVE_KEY + '-mute') === '1'; } catch (e) {}
 // mixer: every voice -> master -> compressor -> speakers, with an optional send into a generated reverb
@@ -419,7 +420,7 @@ function audio() {
     noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
-  if (actx.state === 'suspended') actx.resume();
+  if (actx.state === 'suspended' && !appHidden) actx.resume();     // never wake the audio while we're in the background
   return actx;
 }
 function out(g, rev) {
@@ -616,7 +617,21 @@ for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpPad.a
   jumpFingers.delete(e.pointerId); if (!jumpFingers.size) { keys.jump = false; btnEls.jump.classList.remove('on'); } });
 addEventListener('contextmenu', e => { if (isInGame()) e.preventDefault(); });
 document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled) { sfx('click'); buzz(6); } startAmbience(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && isInGame()) pause(); });
+// Going to the background (home button, app switch, screen off, another tab): pause the game,
+// switch the whole audio engine off and stop the update loop. Coming back lands on the pause menu.
+function goBackground() {
+  if (appHidden) return; appHidden = true;
+  keys.left = keys.right = keys.jump = false;
+  if (isInGame()) pause();
+  try { if (actx && actx.state === 'running') actx.suspend(); } catch (e) {}
+}
+function goForeground() {
+  if (!appHidden) return; appHidden = false; last = performance.now(); acc = 0;
+  try { if (actx && actx.state === 'suspended') actx.resume(); } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) goBackground(); else goForeground(); });
+addEventListener('pagehide', goBackground);
+addEventListener('pageshow', () => { if (!document.hidden) goForeground(); });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
 /* ---------- canvas + cached art ---------- */
@@ -1092,6 +1107,7 @@ function update(dt) {
 let last = performance.now(), acc = 0;
 const testMode = /[?&]test\b/.test(location.search);
 function frame(now) {
+  if (appHidden) { last = now; requestAnimationFrame(frame); return; }      // nothing runs while in the background
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (!testMode) { acc += dt; let n = 0; while (acc >= STEP && n < 8) { update(STEP); acc -= STEP; n++; } if (n === 8) acc = 0; }
   render(now / 1000);
@@ -1528,7 +1544,8 @@ window.__appBack = () => {
   if (state === 'menu' && paused) { resume(); return; }
   try { window.AndroidApp && window.AndroidApp.exit(); } catch (e) {}
 };
-window.__appPause = () => { if (isInGame()) pause(); };
+window.__appPause = goBackground;           // called by the Android app on onPause / onResume
+window.__appResume = goForeground;
 const fsTarget = document.documentElement;
 if (!inApp && isTouch && (fsTarget.requestFullscreen || fsTarget.webkitRequestFullscreen) && document.fullscreenEnabled !== false) {
   $('btnFull').classList.remove('hidden');
@@ -1548,7 +1565,7 @@ loadLevel(0, false); resize(); showMenu(); requestAnimationFrame(frame);
 window.__TI = { keys, get state() { return state; }, get P() { return P; }, get L() { return L; }, get level() { return levelIndex; },
   get time() { return levelTime; }, press() { jumpPressed = true; }, step(n) { for (let i = 0; i < n; i++) update(STEP); },
   start: startFrom, LEVELS, render: () => render(performance.now() / 1000),
-  view: () => ({ VW, VH, cam: L.cam, camY: L.camY }), sfx, storm, audioNodes: () => ({ actx, master }) };
+  view: () => ({ VW, VH, cam: L.cam, camY: L.camY }), sfx, storm, get hidden() { return appHidden; }, audioNodes: () => ({ actx, master }) };
 })();
 </script>
 </body>
