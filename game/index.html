@@ -226,7 +226,7 @@
           <button id="btnHelp" class="mini" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2v2zm2.1-7.8-.9.9c-.7.7-1.2 1.3-1.2 2.9h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3a1.9 1.9 0 0 0-1.4-3.3 2 2 0 0 0-2 2H8a4 4 0 0 1 8 0c0 .9-.4 1.7-.9 2.1z" fill="currentColor"/></svg><span>Controls</span></button>
         </div>
         <div id="helpPanel" class="hidden">
-          <span class="desk">← → or A D to move · Space, ↑ or W to jump (tap for a small hop) · X, J or K to slash (Bone Blade) · R restart · Esc pause · M mute</span>
+          <span class="desk">← → or A D to move · Space, ↑ or W to jump (tap for a small hop) · X, J or K to slash: press again for a combo, in the air for a flip and a plunge (Bone Blade) · R restart · Esc pause · M mute</span>
           <span class="mob">Hold ◀ ▶ to move (slide your thumb between them) · ▲ to jump, tap it quickly for a small hop · sword button to slash</span>
         </div>
       </nav>
@@ -366,13 +366,6 @@ const SECTIONS = {
     if (a[0] === 'bait') b.tiles(ox + 9, 12, ox + 10, 12, { fake: true });
     const ps = px(ox + 3); b.meta.jumps.push([ps - 15, ps + 5], [ps + 158, ps + 190], [ps + 315, ps + 355]); return 20;
   },
-  reverse(b, ox, a) {
-    b.ground(ox, ox + 22); b.gap(ox + 7, ox + 9); b.gap(ox + 14, ox + 16);
-    b.trap({ x: ox + 3, w: 1, do: 'reverse', on: true });
-    if (a[0] === 'hard') b.trap({ x: ox + 12, w: 2, when: 'jump', do: 'reverse', on: false });
-    b.trap({ x: ox + 19, w: 1, do: 'reverse', on: false });
-    b.meta.jumps.push([px(ox + 7) - 35, px(ox + 7) - 15], [px(ox + 14) - 35, px(ox + 14) - 15]); return 23;
-  },
   ball(b, ox, a) {
     b.ground(ox, ox + 9); b.trap({ x: ox + 3, w: 1, do: 'drop', lead: true });
     if (a[0] === 'combo') b.trap({ x: ox + 6, w: 1, do: 'drop', lead: false }); return 10;
@@ -425,18 +418,18 @@ const LEVELS = [
     seq:'ceil wall ceil:0.3 cp ball lowCeil bigPit pit ball:combo cp ceil:0.3 rise lowCeil crumbleStep cp tallWall ceil ball:combo lowCeil wall pit:4 landCrumble:0.25 endFake'},
   { name:'Leap of Faith', hint:'Trust the invisible.',
     seq:'invis wraiths:2 cp pit invis:bait pit:4 cp landCrumble:0.25 bigPit jumpSpikes invis:bait cp dropAhead pit wraiths:3 lowCeil invis:bait crumbleChase:14:6.6 cp rise wraiths:2 ceil:0.3 landCrumble:0.2 endHop'},
-  { name:'Backwards', hint:'Left is left. Right is right.',
-    seq:'reverse rise cp reverse:hard wraiths:2 pit pit:4 cp jumpSpikes reverse tallWall crumbleChase:16:6.6 cp reverse:hard landCrumble:0.25 wraiths:3 lowCeil reverse:hard ball:combo invis:bait endFlee'},
+  { name:'Wraith Hollow', hint:'They hunt in packs.',
+    seq:'wraiths:2 rise cp wraiths:3 wraiths:2 pit pit:4 cp jumpSpikes wraiths:2 tallWall crumbleChase:16:6.6 cp wraiths:3 landCrumble:0.25 wraiths:3 lowCeil wraiths:3 ball:combo invis:bait endFlee'},
   { name:'Keep Moving', hint:'Don\'t stop. It won\'t.', ghost:150,
-    seq:'spikeChase:14:6.2 cp spikeChase:18:6.5 wraiths:2 crumbleChase:14:6.6 cp landCrumble:0.2 spikeChase:20:6.7 pit:4 lowCeil bigPit cp crumbleChase:20:6.8 jumpSpikes spikeChase:22:6.8 wraiths:3 reverse:hard landCrumble:0.2 crumbleChase:20:6.9 endFake'},
+    seq:'spikeChase:14:6.2 cp spikeChase:18:6.5 wraiths:2 crumbleChase:14:6.6 cp landCrumble:0.2 spikeChase:20:6.7 pit:4 lowCeil bigPit cp crumbleChase:20:6.8 jumpSpikes spikeChase:22:6.8 wraiths:3 wraiths:3 landCrumble:0.2 crumbleChase:20:6.9 endFake'},
   { name:'Incoming', hint:'Clear skies tonight.',
     seq:'ball ball:combo wall lowCeil ball ceil:0.3 cp wraiths:3 ball:combo pit:4 ball lowCeil ball:combo wall invis:bait cp tallWall ceil:0.3 ball:combo rise ball:combo landCrumble:0.2 spikeChase:20:6.8 wraiths:2 ball:combo lowCeil ball:combo endHop'},
   { name:'Trust Issues', hint:'You know the rules by now.', ghost:135,
-    seq:'invis:bait reverse:hard ceil:0.3 jumpSpikes spikeChase:18:6.8 lowCeil wraiths:3 cp landCrumble:0.2 pit ball:combo crumbleChase:18:6.9 dropAhead bigPit invis:bait reverse:hard pit:4 cp jumpSpikes ceil:0.3 lowCeil wraiths:3 spikeChase:22:6.9 landCrumble:0.15 ball:combo invis:bait pit endFake'},
+    seq:'invis:bait wraiths:3 ceil:0.3 jumpSpikes spikeChase:18:6.8 lowCeil wraiths:3 cp landCrumble:0.2 pit ball:combo crumbleChase:18:6.9 dropAhead bigPit invis:bait wraiths:3 pit:4 cp jumpSpikes ceil:0.3 lowCeil wraiths:3 spikeChase:22:6.9 landCrumble:0.15 ball:combo invis:bait pit endFake'},
   { name:'No Mercy', hint:'It remembers you.', ghost:145,
-    seq:'spikeChase:20:6.9 lowCeil reverse:hard landCrumble:0.15 invis:bait wraiths:3 ceil:0.3 ball:combo jumpSpikes crumbleChase:22:7 pit:4 cp lowCeil tallWall reverse:hard invis:bait landCrumble:0.15 pit ball:combo dropAhead wraiths:4 spikeChase:24:7 ceil:0.3 jumpSpikes lowCeil reverse:hard bigPit pit:4 crumbleChase:22:7 invis:bait endFlee'},
+    seq:'spikeChase:20:6.9 lowCeil wraiths:3 landCrumble:0.15 invis:bait wraiths:3 ceil:0.3 ball:combo jumpSpikes crumbleChase:22:7 pit:4 cp lowCeil tallWall wraiths:3 invis:bait landCrumble:0.15 pit ball:combo dropAhead wraiths:4 spikeChase:24:7 ceil:0.3 jumpSpikes lowCeil wraiths:3 bigPit pit:4 crumbleChase:22:7 invis:bait endFlee'},
   { name:'The Last Door', hint:'No tricks. Really.', ghost:150,
-    seq:'spikeChase:24:7 lowCeil landCrumble:0.15 invis:bait reverse:hard ceil:0.3 wraiths:3 jumpSpikes ball:combo crumbleChase:24:7 pit:4 lowCeil pit invis:bait bigPit dropAhead cp reverse:hard landCrumble:0.15 spikeChase:26:7.05 ceil:0.3 ball:combo wraiths:4 lowCeil invis:bait jumpSpikes crumbleChase:26:7.05 pit:4 reverse:hard landCrumble:0.15 tallWall lowCeil invis:bait ball:combo spikeChase:26:7.1 ceil:0.3 wraiths:4 pit jumpSpikes crumbleChase:26:7.1 lowCeil endHop'},
+    seq:'spikeChase:24:7 lowCeil landCrumble:0.15 invis:bait wraiths:3 ceil:0.3 wraiths:3 jumpSpikes ball:combo crumbleChase:24:7 pit:4 lowCeil pit invis:bait bigPit dropAhead cp wraiths:3 landCrumble:0.15 spikeChase:26:7.05 ceil:0.3 ball:combo wraiths:4 lowCeil invis:bait jumpSpikes crumbleChase:26:7.05 pit:4 wraiths:3 landCrumble:0.15 tallWall lowCeil invis:bait ball:combo spikeChase:26:7.1 ceil:0.3 wraiths:4 pit jumpSpikes crumbleChase:26:7.1 lowCeil endHop'},
 ];
 
 const QUIPS = ['Rest in pieces.','Boo.','Dead again.','Bone dry.','Trust no tile.','Grave mistake.','Skull issue.'];
@@ -549,6 +542,12 @@ function sfx(kind) {
         noise(0.5, 6000, 2500, 3, 0.03, 0, 'bandpass', 0.01, 0.6); break;
       case 'djump': noise(0.32, 700, 3200, 1.2, 0.06, 0, 'bandpass', 0.02, 0.5); tone(660, 990, 0.3, 'sine', 0.04, 0, 0.6, 0.01); tone(990, 1480, 0.3, 'sine', 0.02, 0.03, 0.6, 0.01); break;
       case 'slash': noise(0.16, 3200, 700, 1, 0.12, 0, 'highpass', 0.004, 0.2); tone(2300, 2250, 0.35, 'sine', 0.03, 0.03, 0.4, 0.002); tone(3460, 3400, 0.25, 'sine', 0.015, 0.03, 0.4, 0.002); break;
+      case 'slash2': noise(0.16, 2400, 900, 1, 0.11, 0, 'highpass', 0.004, 0.2); tone(1900, 1850, 0.3, 'sine', 0.025, 0.03, 0.4, 0.002); break;
+      case 'spin': noise(0.42, 500, 3600, 0.9, 0.1, 0, 'bandpass', 0.05, 0.3); tone(2300, 2600, 0.45, 'sine', 0.022, 0.05, 0.5, 0.01); tone(3460, 3900, 0.35, 'sine', 0.012, 0.08, 0.5, 0.01); break;
+      case 'flip': noise(0.4, 900, 2600, 1, 0.08, 0, 'bandpass', 0.04, 0.3); tone(520, 880, 0.3, 'sine', 0.03, 0, 0.4, 0.01); break;
+      case 'plunge': noise(0.5, 3000, 600, 1.2, 0.08, 0, 'bandpass', 0.02, 0.3); tone(1400, 500, 0.45, 'sine', 0.025, 0, 0.3, 0.01); break;
+      case 'impact': tone(80, 34, 0.5, 'sine', 0.3, 0, 0.35, 0.002); noise(0.35, 900, 90, 0.7, 0.14, 0, 'lowpass', 0.002, 0.4); clack(4, 0.04, 0.02); break;
+      case 'hit': noise(0.09, 1800, 600, 0.8, 0.16, 0, 'bandpass', 0.002, 0.2); tone(140, 60, 0.14, 'sine', 0.14, 0, 0.2, 0.002); break;
       case 'banish': noise(0.5, 400, 4000, 1, 0.08, 0, 'bandpass', 0.4, 0.7); tone(900, 180, 0.9, 'sawtooth', 0.025, 0.35, 0.8, 0.01); tone(905, 185, 0.9, 'sine', 0.04, 0.35, 0.8, 0.01);
         noise(0.12, 2500, 900, 1, 0.12, 0.38, 'bandpass', 0.002, 0.5); break;
       case 'wraith': noise(1.2, 1600, 700, 5, 0.04, 0, 'bandpass', 0.4, 0.7, rndPan()); tone(392, 349, 1, 'sine', 0.018, 0.1, 0.8, 0.3); break;
@@ -825,7 +824,7 @@ function buildCaches() {
 /* ---------- world ---------- */
 let L = null, P = null, levelIndex = 0, state = 'menu', paused = false;
 let deaths = 0, levelDeaths = 0, levelTime = 0, cpIndex = -1;
-let stateT = 0, quip = '', particles = [], shake = 0, flash = 0;
+let stateT = 0, quip = '', particles = [], shake = 0, flash = 0, hitStop = 0;
 const isInGame = () => state === 'play' || state === 'dead' || state === 'win' || state === 'eaten';
 const EAT_TIME = 2.6;
 const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -890,7 +889,7 @@ function loadLevel(i, keepCp) {
     L.wraiths.forEach(w => { if (w.x < f.x + 60) w.alive = false; });
   }
   P = { x: sx, y: sy, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1,
-        walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0, airJumps: 1, wingT: 0, atk: 0, atkCd: 0 };
+        walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0, airJumps: 1, wingT: 0, atk: 0, atkCd: 0, atkType: null, atkDur: 1, combo: 0, comboT: 9, rot: 0, flipUsed: false, trail: [] };
   jumpPressed = attackPressed = false;
   jumpPressed = false; particles = []; shake = 0; L.cam = camTarget(); L.camY = camTargetY();
   L.ghost = L.def.ghost ? { x: P.x - 460, y: P.y - 80, speed: L.def.ghost, at: 1.4, a: 0, beat: 0, woke: false, talk: 2, armed: true, trail: [], scare: 0 } : null;
@@ -924,8 +923,6 @@ function fire(tr) {
     L.groups[tr.g] = { mode: 'fall', at: L.t + d, vy: 0 };
   } else if (tr.do === 'showDoor') {
     L.door.hidden = false; sfx('door'); burst(L.door.x + T / 2, L.door.y + 22, C.door, 18, 200);
-  } else if (tr.do === 'reverse') {
-    if (L.reverse !== tr.on) { L.reverse = tr.on; sfx('door'); burst(P.x + P.w / 2, P.y, '#c7a6ff', 12, 160); }
   } else if (tr.do === 'drop') {
     const fallT = (P.y + P.h / 2 + 20) / 600;
     const tx = P.x + P.w / 2 + (tr.lead ? P.vx * fallT : 0);
@@ -1100,8 +1097,7 @@ function drawGhost(time) {
 function touch(t) { if (t.hiddenTile && !t.visible) { t.visible = true; burst(t.x + T / 2, t.y + 4, C.glow, 6, 120); } }
 
 function updatePlayer(dt) {
-  let dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
-  if (L.reverse) dir = -dir;
+  const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);   // right is always right
   P.jumped = false; P.spawn = Math.min(1, P.spawn + dt * 5);
   if (dir) { P.vx += dir * (P.ground ? 2600 : 1800) * dt; P.vx = Math.max(-SPEED, Math.min(SPEED, P.vx)); P.face = dir; }
   else { const f = (P.ground ? 3200 : 900) * dt; P.vx = Math.abs(P.vx) <= f ? 0 : P.vx - Math.sign(P.vx) * f; }
@@ -1117,13 +1113,21 @@ function updatePlayer(dt) {
     sfx('djump'); burst(P.x + P.w / 2, P.y + P.h, C.glow, 12, 160);
   }
   P.wingT = Math.max(0, P.wingT - dt);
-  // Bone Blade: a short slash in front of the skeleton
-  P.atk = Math.max(0, P.atk - dt); P.atkCd = Math.max(0, P.atkCd - dt);
+  // Bone Blade moves. Ground: slash -> backhand -> spin (press again within 0.5 s to chain).
+  // Air: flip slash (a somersault with the blade out), then press again for a downward plunge.
+  P.comboT += dt; P.atkCd = Math.max(0, P.atkCd - dt);
+  if (P.ground) P.flipUsed = false;
   if (attackPressed) {
     attackPressed = false;
-    if (hasBlade() && P.atkCd <= 0) { P.atk = 0.24; P.atkCd = 0.3; P.hitDone = false; sfx('slash'); }
+    if (hasBlade()) {
+      if (P.atkType === 'flip') startAttack('plunge');      // in the air: flip turns straight into a plunge
+      else if (P.atkType) P.queued = Math.min(2, (P.queued || 0) + (P.atkType !== 'plunge' ? 1 : 0)); // remember up to 2 presses
+      else if (P.atkCd <= 0) nextAttack();
+      else P.queued = Math.min(2, (P.queued || 0) + 1);   // pressed during recovery: fire as soon as it's over
+    }
   }
-  if (P.atk > 0.08 && !P.hitDone) { P.hitDone = true; slashHit(); }
+  if (!P.atkType && P.queued && P.atkCd <= 0) { P.queued--; nextAttack(); }
+  if (P.atkType) updateAttack(dt);
   let g = GRAV; if (P.vy < 0 && !keys.jump) g *= 2.4;
   P.vy = Math.min(P.vy + g * dt, 950);
 
@@ -1166,16 +1170,80 @@ function updatePlayer(dt) {
   if (!D.hidden && cx > D.x + 4 && cx < D.x + D.w - 4 && cy > D.y && cy < D.y + D.h) win();
 }
 
-function slashBox() { return { x: P.face > 0 ? P.x + P.w / 2 - 4 : P.x + P.w / 2 - 50, y: P.y - 22, w: 54, h: P.h + 30 }; }
-function killWraith(w) { w.alive = false; sfx('banish'); burst(w.x, w.y, '#cfe0ff', 22, 260); burst(w.x, w.y, C.glow, 10, 180); shake = Math.max(shake, 4); }
-function slashHit() {
-  const box = slashBox();
-  for (const w of L.wraiths) if (w.alive && w.x > box.x && w.x < box.x + box.w && w.y > box.y && w.y < box.y + box.h) killWraith(w);
-  const G = L.ghost;                                   // the big ghost can be banished for a few seconds
-  if (G && G.a > 0.5 && !G.gone && G.x > box.x - 14 && G.x < box.x + box.w + 14 && G.y > box.y - 20 && G.y < box.y + box.h + 20) {
-    G.gone = 4.5; G.a = 0; sfx('banish'); burst(G.x, G.y, '#dfeee8', 30, 320); shake = 8;
+const MOVES = {                                     // duration, cooldown after, sound
+  slash:    { dur: 0.22, cd: 0.05, snd: 'slash' },
+  backhand: { dur: 0.22, cd: 0.05, snd: 'slash2' },
+  spin:     { dur: 0.42, cd: 0.25, snd: 'spin' },
+  flip:     { dur: 0.42, cd: 0.05, snd: 'flip' },
+  plunge:   { dur: 9,    cd: 0.25, snd: 'plunge' },
+};
+const ease = k => 1 - Math.pow(1 - k, 3);             // fast start, soft finish
+function nextAttack() {
+  let type;
+  if (!P.ground && P.coyote <= 0) type = P.flipUsed ? 'plunge' : 'flip';
+  else { P.combo = P.comboT < 0.5 ? (P.combo % 3) + 1 : 1; type = ['slash', 'backhand', 'spin'][P.combo - 1]; }
+  startAttack(type);
+}
+function startAttack(type) {
+  const m = MOVES[type]; P.atkType = type; P.atkDur = m.dur; P.atk = 0; P.hits = new Set(); P.trail = []; P.comboT = 0;
+  sfx(m.snd); buzz(10);
+  if (type === 'spin') P.vx += P.face * 120;          // a little lunge
+  if (type === 'flip') { P.flipUsed = true; P.vy = Math.min(P.vy, -260); }
+  if (type === 'plunge') { P.vy = 820; P.vx *= 0.4; }
+}
+function updateAttack(dt) {
+  const m = MOVES[P.atkType]; P.atk += dt;
+  const k = Math.min(1, P.atk / m.dur);
+  P.rot = P.atkType === 'spin' ? ease(k) * Math.PI * 2 * P.face : P.atkType === 'flip' ? ease(k) * Math.PI * 2 * P.face : 0;
+  const g = bladeGeom(); P.trail.unshift(g); if (P.trail.length > 9) P.trail.pop();
+  // hits happen during the fast part of each swing
+  if (P.atkType === 'plunge') { P.vy = Math.max(P.vy, 820); hitAlong(g, 0); if (P.ground) plungeImpact(); return; }
+  if (k > 0.05 && k < 0.8) hitAlong(g, P.atkType === 'spin' || P.atkType === 'flip' ? 46 : 0);
+  if (k >= 1) endAttack();
+}
+function endAttack() {
+  P.atkCd = MOVES[P.atkType].cd; P.atkType = null; P.rot = 0;
+  if (P.queued) { P.queued--; P.atkCd = 0; nextAttack(); }        // chain straight into the next move
+}
+function plungeImpact() {
+  endAttack(); shake = 10; flash = 0.15; hitStop = 0.06; sfx('impact');
+  dust(P.x + P.w / 2, P.y + P.h, 16, 0); burst(P.x + P.w / 2, P.y + P.h, C.glow, 14, 260);
+  for (const w of L.wraiths) if (w.alive && Math.abs(w.x - (P.x + P.w / 2)) < 80 && Math.abs(w.y - (P.y + P.h / 2)) < 60) killWraith(w);
+}
+// hand and blade tip in world space, following the body rotation and the swing angle
+function bladeAngle() {
+  const t = P.atkType, k = t ? ease(Math.min(1, P.atk / P.atkDur)) : 0;
+  if (t === 'slash') return -1.7 + k * 3.8;            // overhead, down and forward
+  if (t === 'backhand') return 2.2 - k * 3.5;         // low and forward, rising behind
+  if (t === 'spin') return 1.55;                      // held straight out while the body turns
+  if (t === 'flip') return 1.4;
+  if (t === 'plunge') return Math.PI;                 // pointing straight down
+  return 0.75;                                        // resting, angled forward
+}
+function bladeGeom() {
+  const f = P.face, cx = P.x + P.w / 2, cy = P.y + P.h / 2, r = P.rot, c = Math.cos(r), s2 = Math.sin(r);
+  const lx = f * 8, ly = P.atkType === 'plunge' ? 6 : 0;                   // hand, relative to the body centre
+  const hx = cx + lx * c - ly * s2, hy = cy + lx * s2 + ly * c;
+  const a = bladeAngle(), dx0 = Math.sin(a) * f, dy0 = -Math.cos(a);
+  const dx = dx0 * c - dy0 * s2, dy = dx0 * s2 + dy0 * c, len = 27;
+  return { hx, hy, tx: hx + dx * len, ty: hy + dy * len, dx, dy };
+}
+function hitAlong(g, radius) {
+  const cx = P.x + P.w / 2, cy = P.y + P.h / 2;
+  const fwd = P.atkType === 'slash' || P.atkType === 'backhand';
+  const near = (x, y, pad) => {
+    if (radius && Math.hypot(x - cx, y - cy) < radius + pad) return true;
+    if (fwd && (x - cx) * P.face > -6 && Math.hypot(x - cx, y - cy) < 46 + pad && Math.abs(y - cy) < 34 + pad) return true;  // swing arc in front
+    const vx = g.tx - g.hx, vy = g.ty - g.hy, t = Math.max(0, Math.min(1, ((x - g.hx) * vx + (y - g.hy) * vy) / (vx * vx + vy * vy)));
+    return Math.hypot(x - (g.hx + vx * t), y - (g.hy + vy * t)) < 15 + pad;
+  };
+  for (const w of L.wraiths) if (w.alive && !P.hits.has(w) && near(w.x, w.y, 0)) { P.hits.add(w); killWraith(w); hitStop = 0.05; sfx('hit'); }
+  const G = L.ghost;
+  if (G && G.a > 0.5 && !G.gone && near(G.x, G.y, 14)) {
+    G.gone = 4.5; G.a = 0; sfx('banish'); sfx('hit'); burst(G.x, G.y, '#dfeee8', 30, 320); shake = 8; hitStop = 0.08;
   }
 }
+function killWraith(w) { w.alive = false; sfx('banish'); burst(w.x, w.y, '#cfe0ff', 22, 260); burst(w.x, w.y, C.glow, 10, 180); shake = Math.max(shake, 4); }
 function updateWraiths(dt) {
   const cx = P.x + P.w / 2, cy = P.y + P.h / 2;
   for (const w of L.wraiths) {
@@ -1234,6 +1302,7 @@ function update(dt) {
   ambientTick(dt);
   if (L) ghostAudio(dt);
   if (!L || paused) return;
+  if (hitStop > 0) { hitStop -= dt; return; }          // tiny freeze-frame so hits feel solid
   if (state === 'play' || state === 'dead' || state === 'eaten') levelTime += dt;
   if (state === 'eaten') updateDevour(dt);
   if (state === 'play') { updateTraps(); updateWorld(dt); if (state === 'play') updatePlayer(dt); }
@@ -1412,7 +1481,12 @@ function render(time) {
     ctx.fillStyle = '#05060a'; ctx.beginPath(); ctx.arc(-2, -1, 1.4, 0, 7); ctx.arc(2, -1, 1.4, 0, 7); ctx.fill(); ctx.restore();
   }
 
-  if (state !== 'dead' && state !== 'eaten') { drawWings(); drawPlayer(time); drawBlade(); }
+  if (state !== 'dead' && state !== 'eaten') {
+    drawWings(); drawTrail();
+    if (P.rot) { const cx = P.x + P.w / 2, cy = P.y + P.h / 2; ctx.save(); ctx.translate(cx, cy); ctx.rotate(P.rot); ctx.translate(-cx, -cy); drawPlayer(time); ctx.restore(); }
+    else drawPlayer(time);
+    drawBlade();
+  }
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2)); ctx.fillStyle = p.color;
     if (p.round) { ctx.beginPath(); ctx.arc(p.x, p.y, p.s / 2, 0, 7); ctx.fill(); } else ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
@@ -1456,10 +1530,6 @@ function render(time) {
     ctx.beginPath(); ctx.arc(cam + 18, gy - 3, 9, Math.PI, 0); ctx.lineTo(cam + 27, gy + 9); ctx.lineTo(cam + 9, gy + 9); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#c8202f'; ctx.beginPath(); ctx.arc(cam + 15, gy - 3, 1.6, 0, 7); ctx.arc(cam + 21, gy - 3, 1.6, 0, 7); ctx.fill();
     ctx.globalAlpha = 1;
-  }
-  if (L.reverse && state === 'play') {
-    ctx.fillStyle = '#b9a8ff'; ctx.font = '800 16px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText('⇄', P.x + P.w / 2, P.y - 14);
   }
   ctx.restore();
 
@@ -1510,24 +1580,31 @@ function drawWings() {                                // Wraith Wings flash on a
   }
   ctx.restore();
 }
-function drawBlade() {                                // Bone Blade: held low, swung in an arc when attacking
-  if (!hasBlade()) return;
-  const f = P.face, hx = P.x + P.w / 2 + f * 9, hy = P.y + 12;
-  const k = P.atk > 0 ? 1 - P.atk / 0.24 : -1, ang = k >= 0 ? (-1.9 + k * 2.6) : 0.75;
-  ctx.save(); ctx.translate(hx, hy); ctx.scale(f, 1); ctx.rotate(ang);
-  ctx.fillStyle = C.boneShade; ctx.fillRect(-1.5, -2, 3, 7);                  // grip
-  ctx.fillStyle = C.bone; ctx.fillRect(-5, -3, 10, 2.4);                      // crossguard
-  ctx.beginPath(); ctx.moveTo(-2, -3); ctx.lineTo(2, -3); ctx.lineTo(1.2, -22); ctx.lineTo(0, -25); ctx.lineTo(-1.2, -22); ctx.closePath();
-  ctx.fillStyle = '#eef6f2'; ctx.fill();
-  ctx.globalAlpha = 0.35; ctx.strokeStyle = C.glow; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1;
-  ctx.restore();
-  if (P.atk > 0) {                                    // the slash trail
-    const a = P.atk / 0.24;
-    ctx.save(); ctx.globalAlpha = a * 0.8; ctx.strokeStyle = C.glow; ctx.lineWidth = 4 * a + 1; ctx.lineCap = 'round';
-    ctx.beginPath(); const sa = f > 0 ? -1.4 : Math.PI + 1.4, ea = f > 0 ? 0.9 : Math.PI - 0.9;
-    ctx.arc(P.x + P.w / 2, P.y + 10, 30, Math.min(sa, ea), Math.max(sa, ea)); ctx.stroke();
-    ctx.globalAlpha = a * 0.3; ctx.lineWidth = 12 * a; ctx.stroke(); ctx.restore();
+function drawTrail() {                                // a glowing ribbon behind the blade tip while swinging
+  const tr = P.trail; if (!P.atkType || tr.length < 3) return;
+  ctx.save();
+  for (let i = 0; i < tr.length - 1; i++) {
+    const a = tr[i], b = tr[i + 1], fade = 1 - i / tr.length;
+    ctx.globalAlpha = fade * 0.55; ctx.fillStyle = C.glow;
+    ctx.beginPath(); ctx.moveTo(a.tx, a.ty); ctx.lineTo(b.tx, b.ty);
+    ctx.lineTo(b.hx + (b.tx - b.hx) * 0.45, b.hy + (b.ty - b.hy) * 0.45); ctx.lineTo(a.hx + (a.tx - a.hx) * 0.45, a.hy + (a.ty - a.hy) * 0.45);
+    ctx.closePath(); ctx.fill();
   }
+  ctx.globalAlpha = 0.9; ctx.strokeStyle = '#e9fff4'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath();
+  tr.forEach((p, i) => i ? ctx.lineTo(p.tx, p.ty) : ctx.moveTo(p.tx, p.ty)); ctx.stroke();
+  ctx.restore();
+}
+function drawBlade() {                                // the Bone Blade, drawn along its real swing
+  if (!hasBlade()) return;
+  const g = bladeGeom(), ang = Math.atan2(g.dy, g.dx) + Math.PI / 2;
+  ctx.save(); ctx.translate(g.hx, g.hy); ctx.rotate(ang);
+  ctx.fillStyle = C.boneShade; ctx.fillRect(-1.5, -1, 3, 7);                  // grip
+  ctx.beginPath(); ctx.arc(0, 6.5, 2, 0, 7); ctx.fill();                      // pommel
+  ctx.fillStyle = C.bone; ctx.fillRect(-5.5, -2.5, 11, 2.6);                  // crossguard
+  ctx.beginPath(); ctx.moveTo(-2.1, -2.5); ctx.lineTo(2.1, -2.5); ctx.lineTo(1.3, -24); ctx.lineTo(0, -27); ctx.lineTo(-1.3, -24); ctx.closePath();
+  ctx.fillStyle = '#eef6f2'; ctx.fill();
+  ctx.globalAlpha = P.atkType ? 0.6 : 0.3; ctx.strokeStyle = C.glow; ctx.lineWidth = P.atkType ? 4 : 2.5; ctx.stroke();
+  ctx.restore();
 }
 function drawWraiths(time) {
   for (const w of L.wraiths) {
