@@ -23,7 +23,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(ROOT)
 PACKAGE = 'com.designbynaren.trustissues'
 LABEL = 'Trust Issues'
-VERSION_CODE, VERSION_NAME = 1, '1.0'
+VERSION_CODE, VERSION_NAME = 2, '1.1'
 MIN_SDK, TARGET_SDK = 24, 34
 
 # android.R.attr / android.R.style ids (read from android.jar with javap)
@@ -66,9 +66,11 @@ def manifest_axml():
     # element tree: (tag, [(attr, type, value)], children)
     tree = ('manifest', [('versionCode', T_INT_DEC, VERSION_CODE), ('versionName', T_STRING, VERSION_NAME)], [
         ('uses-sdk', [('minSdkVersion', T_INT_DEC, MIN_SDK), ('targetSdkVersion', T_INT_DEC, TARGET_SDK)], []),
+        ('uses-permission', [('name', T_STRING, 'android.permission.VIBRATE')], []),       # button haptics
         ('application', [('theme', T_REF, THEME_NOTITLEBAR_FULLSCREEN), ('label', T_STRING, LABEL), ('icon', T_REF, ICON_ID),
                          ('allowBackup', T_BOOL, True), ('hardwareAccelerated', T_BOOL, True)], [
             ('activity', [('name', T_STRING, PACKAGE + '.MainActivity'), ('exported', T_BOOL, True),
+                          ('screenOrientation', T_INT_DEC, 6),                 # sensorLandscape: either way up, never portrait
                           ('configChanges', T_INT_HEX, 0x0DB0)], [   # keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize
                 ('intent-filter', [], [
                     ('action', [('name', T_STRING, 'android.intent.action.MAIN')], []),

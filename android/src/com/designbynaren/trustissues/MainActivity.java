@@ -17,6 +17,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        setRequestedOrientation(6);              // ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | WindowManager.LayoutParams.FLAG_FULLSCREEN);
         web = new WebView(this);
         WebSettings s = web.getSettings();

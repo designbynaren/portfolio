@@ -31,7 +31,15 @@
   button{font:inherit;font-weight:800;font-size:clamp(14px,1.8vw,18px);border:0;border-radius:14px;padding:.7em 1.6em;cursor:pointer;
     background:var(--accent);color:var(--accent-ink);box-shadow:0 4px 0 var(--accent-deep);transition:transform .08s,filter .15s}
   button:hover{filter:brightness(1.08)}
-  button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-deep)}
+  button:not(.ghost){background:linear-gradient(180deg,#e0303f,var(--accent) 60%,#a8182a);position:relative;overflow:hidden}
+  button:not(.ghost)::before{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-18deg);animation:shine 3.2s ease-in-out infinite}
+  @keyframes shine{0%,70%{left:-60%}100%{left:130%}}
+  #btnPlay:not(.ghost),#btnNext{animation:glow 2.2s ease-in-out infinite}
+  @keyframes glow{0%,100%{box-shadow:0 4px 0 var(--accent-deep),0 0 0 rgba(200,32,47,0)}50%{box-shadow:0 4px 0 var(--accent-deep),0 0 26px rgba(200,32,47,.55)}}
+  button.ghost:hover{box-shadow:inset 0 0 0 2px var(--ink)}
+  @media (prefers-reduced-motion:reduce){button::before,#btnPlay,#btnNext{animation:none!important}}
+  button:active{transform:translateY(3px) scale(.98);box-shadow:0 1px 0 var(--accent-deep)}
   button:focus-visible{outline:3px solid #fff;outline-offset:3px}
   button.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--muted)}
   button:disabled{opacity:.3;cursor:not-allowed}
@@ -66,17 +74,29 @@
   body.touch.playing #touch{display:flex}
   #touch{justify-content:space-between;align-items:flex-end;gap:12px;pointer-events:none;z-index:4}
   #touch .pad{display:flex;gap:10px;pointer-events:auto;touch-action:none}
-  #touch .tbtn{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;
-    background:rgba(5,6,10,.45);color:var(--ink);border:2px solid rgba(233,228,216,.28);transition:background .08s,transform .08s}
-  #touch .tbtn.on{background:rgba(200,32,47,.55);transform:scale(.94);border-color:rgba(255,255,255,.5)}
-  #touch .tbtn.jump{width:92px;height:92px}
+  /* thumb buttons: >=48px targets (72/88 here), 14px apart, >=16px from edges and notches */
+  #touch .tbtn{position:relative;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;color:var(--ink);
+    background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.14),rgba(12,13,20,.62) 62%);
+    border:2px solid rgba(233,228,216,.24);box-shadow:0 8px 20px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.14);
+    transition:transform .09s ease,background .12s,box-shadow .12s,border-color .12s;-webkit-user-select:none}
+  #touch .tbtn svg{width:44%;height:44%;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));transition:transform .09s}
+  #touch .tbtn.on{transform:scale(.9);border-color:rgba(255,140,150,.85);
+    background:radial-gradient(circle at 50% 30%,rgba(255,110,120,.6),rgba(150,12,28,.78) 66%);
+    box-shadow:0 0 24px rgba(200,32,47,.7),inset 0 3px 8px rgba(0,0,0,.45)}
+  #touch .tbtn.on svg{transform:scale(1.12)}
+  #touch .tbtn::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid rgba(255,110,120,0);pointer-events:none}
+  #touch .tbtn.ripple::after{animation:ring .38s ease-out}
+  @keyframes ring{from{transform:scale(1);border-color:rgba(255,110,120,.85)}to{transform:scale(1.5);border-color:rgba(255,110,120,0)}}
+  #touch .tbtn.jump{width:90px;height:90px}
+  #touch .tbtn.jump svg{width:48%;height:48%}
+  #touch .pad{gap:14px}
   #touch .tip{display:none}
   /* landscape phones: controls float over the bottom corners of the game */
   @media (orientation:landscape){
     body.touch #touch{position:fixed;left:0;right:0;bottom:0;
-      padding:0 max(18px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
-    body.touch #touch .tbtn{width:70px;height:70px;font-size:24px;background:rgba(5,6,10,.32);opacity:.8}
-    body.touch #touch .tbtn.jump{width:82px;height:82px}
+      padding:0 max(22px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(22px,env(safe-area-inset-left))}
+    body.touch #touch .tbtn{width:72px;height:72px;opacity:.9}
+    body.touch #touch .tbtn.jump{width:88px;height:88px}
   }
   /* portrait phones: the game sits on top, controls get their own panel underneath */
   @media (orientation:portrait){
@@ -84,7 +104,7 @@
     body.touch .overlay{position:fixed;inset:0}
     body.touch #touch{position:relative;flex:1;width:100%;align-items:center;flex-wrap:wrap;align-content:center;
       padding:12px max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
-    body.touch #touch .tbtn{width:min(26vw,104px);height:min(26vw,104px);font-size:34px}
+    body.touch #touch .tbtn{width:min(24vw,96px);height:min(24vw,96px)}
     body.touch #touch .tbtn.jump{width:min(32vw,124px);height:min(32vw,124px)}
     body.touch #touch .tip{display:block;width:100%;text-align:center;color:var(--muted);font-size:13px;order:3;margin-top:4px}
   }
@@ -170,12 +190,12 @@
   </div>
   <div id="touch">
     <div class="pad" id="movePad">
-      <div class="tbtn" data-k="left" role="button" aria-label="Move left">◀</div>
-      <div class="tbtn" data-k="right" role="button" aria-label="Move right">▶</div>
+      <div class="tbtn" data-k="left" role="button" aria-label="Move left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 4.5 L6.5 12 L15.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      <div class="tbtn" data-k="right" role="button" aria-label="Move right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 4.5 L17.5 12 L8.5 19.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
     </div>
     <div class="tip">Turn your phone sideways for a bigger view</div>
     <div class="pad" id="jumpPad">
-      <div class="tbtn jump" data-k="jump" role="button" aria-label="Jump">▲</div>
+      <div class="tbtn jump" data-k="jump" role="button" aria-label="Jump"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 15.5 L12 6.5 L19.5 15.5 Z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
     </div>
   </div>
 </div>
@@ -210,15 +230,15 @@ const SECTIONS = {
     b.trap({ x: ox + 3, w: 1, do: 'rise', g }); b.meta.jumps.push([px(ox + 5) - 45, px(ox + 5) - 25]); return 10;
   },
   crumbleStep(b, ox) {
-    b.ground(ox, ox + 8); const g = b.group(); b.tiles(ox + 3, 15, ox + 5, 17, { g });
+    b.ground(ox, ox + 8); const g = b.group(); b.tiles(ox + 3, 15, ox + 5, 17, { g, crack: true });
     b.trap({ x: ox + 4, w: 1, do: 'crumble', g }); b.meta.jumps.push([px(ox + 3) - 30, px(ox + 3) - 10]); return 9;
   },
   dropAhead(b, ox) {
-    b.ground(ox, ox + 11); const g = b.group(); b.tiles(ox + 5, 15, ox + 8, 17, { g });
+    b.ground(ox, ox + 11); const g = b.group(); b.tiles(ox + 5, 15, ox + 8, 17, { g, crack: true });
     b.trap({ x: ox + 3, w: 1, do: 'crumble', g }); b.meta.jumps.push([px(ox + 5) - 35, px(ox + 5) - 15]); return 12;
   },
   landCrumble(b, ox, a) {
-    b.ground(ox, ox + 13); b.gap(ox + 3, ox + 5); const g = b.group(); b.tiles(ox + 6, 15, ox + 10, 17, { g });
+    b.ground(ox, ox + 13); b.gap(ox + 3, ox + 5); const g = b.group(); b.tiles(ox + 6, 15, ox + 10, 17, { g, crack: true });
     b.trap({ x: ox + 6, w: 5, when: 'ground', do: 'crumble', g, delay: a[0] !== undefined ? +a[0] : 0.3 });
     const gs = px(ox + 3); b.meta.jumps.push([gs - 35, gs - 15], [gs + 90, gs + 200]); return 14;
   },
@@ -242,17 +262,13 @@ const SECTIONS = {
   },
   crumbleChase(b, ox, a) {
     const n = +a[0] || 12, rate = +a[1] || 6.4; b.ground(ox, ox + n + 5); const g = b.group();
-    b.tiles(ox + 3, 15, ox + 2 + n, 17, { g }); b.trap({ x: ox + 4, w: 1, do: 'crumble', g, stagger: 1 / rate }); return n + 6;
+    b.tiles(ox + 3, 15, ox + 2 + n, 17, { g, crack: true }); b.trap({ x: ox + 4, w: 1, do: 'crumble', g, stagger: 1 / rate }); return n + 6;
   },
   invis(b, ox, a) {
     b.ground(ox, ox + 2); b.ground(ox + 17, ox + 19); b.spikes(ox + 3, ox + 16, 17, {});
     b.tiles(ox + 7, 14, ox + 8, 14, { hidden: true }); b.tiles(ox + 12, 13, ox + 14, 13, { hidden: true });
     if (a[0] === 'bait') b.tiles(ox + 9, 12, ox + 10, 12, { fake: true });
     const ps = px(ox + 3); b.meta.jumps.push([ps - 15, ps + 5], [ps + 158, ps + 190], [ps + 315, ps + 355]); return 20;
-  },
-  fakeFloor(b, ox) {
-    b.ground(ox, ox + 9); b.tiles(ox + 5, 15, ox + 6, 17, { fake: true });
-    b.meta.jumps.push([px(ox + 5) - 35, px(ox + 5) - 15]); return 10;
   },
   reverse(b, ox, a) {
     b.ground(ox, ox + 22); b.gap(ox + 7, ox + 9); b.gap(ox + 14, ox + 16);
@@ -293,27 +309,27 @@ const SECTIONS = {
 /* Difficulty climbs every level: longer runs, faster chases, shorter reaction windows, fewer checkpoints. */
 const LEVELS = [
   { name:'Hello, Friend', hint:'Just walk to the crypt.',
-    seq:'pit rise crumbleStep cp wall fakeFloor pit cp dropAhead rise jumpSpikes cp ball pit crumbleStep wall cp fakeFloor rise lowCeil dropAhead pit crumbleStep endPlain' },
+    seq:'pit rise crumbleStep cp wall pit pit cp dropAhead rise jumpSpikes cp ball pit crumbleStep wall cp pit rise lowCeil dropAhead pit crumbleStep endPlain' },
   { name:'Solid Ground', hint:'The floor is perfectly reliable.',
-    seq:'crumbleStep landCrumble dropAhead cp crumbleChase:12:6.2 pit fakeFloor rise cp landCrumble crumbleChase:16:6.4 jumpSpikes dropAhead cp pit:4 landCrumble:0.25 crumbleChase:18:6.6 endFlee' },
+    seq:'crumbleStep landCrumble dropAhead cp crumbleChase:12:6.2 pit pit rise cp landCrumble crumbleChase:16:6.4 jumpSpikes dropAhead cp pit:4 landCrumble:0.25 crumbleChase:18:6.6 endFlee' },
   { name:'Mind Your Head', hint:'Something is following you.', ghost:115,
     seq:'ceil wall ceil:0.3 cp ball lowCeil pit ball:combo cp ceil:0.3 rise lowCeil crumbleStep cp ceil ball:combo lowCeil wall pit:4 landCrumble:0.25 endFake' },
   { name:'Leap of Faith', hint:'Trust the invisible.',
-    seq:'invis cp fakeFloor invis:bait pit:4 cp landCrumble:0.25 jumpSpikes invis:bait cp dropAhead fakeFloor lowCeil invis:bait crumbleChase:14:6.6 cp rise ceil:0.3 landCrumble:0.2 endHop' },
+    seq:'invis cp pit invis:bait pit:4 cp landCrumble:0.25 jumpSpikes invis:bait cp dropAhead pit lowCeil invis:bait crumbleChase:14:6.6 cp rise ceil:0.3 landCrumble:0.2 endHop' },
   { name:'Backwards', hint:'Left is left. Right is right.',
-    seq:'reverse rise cp reverse:hard fakeFloor pit:4 cp jumpSpikes reverse crumbleChase:16:6.6 cp reverse:hard landCrumble:0.25 lowCeil reverse:hard ball:combo invis:bait endFlee' },
+    seq:'reverse rise cp reverse:hard pit pit:4 cp jumpSpikes reverse crumbleChase:16:6.6 cp reverse:hard landCrumble:0.25 lowCeil reverse:hard ball:combo invis:bait endFlee' },
   { name:'Keep Moving', hint:'Don\'t stop. It won\'t.', ghost:150,
     seq:'spikeChase:14:6.2 cp spikeChase:18:6.5 crumbleChase:14:6.6 cp landCrumble:0.2 spikeChase:20:6.7 pit:4 lowCeil cp crumbleChase:20:6.8 jumpSpikes spikeChase:22:6.8 reverse:hard landCrumble:0.2 crumbleChase:20:6.9 endFake' },
   { name:'Incoming', hint:'Clear skies tonight.',
     seq:'ball ball:combo wall lowCeil ball ceil:0.3 cp ball:combo pit:4 ball lowCeil ball:combo wall invis:bait cp ceil:0.3 ball:combo rise ball:combo landCrumble:0.2 spikeChase:20:6.8 ball:combo lowCeil ball:combo endHop' },
   { name:'Trust Issues', hint:'You know the rules by now.', ghost:135,
-    seq:'invis:bait reverse:hard ceil:0.3 jumpSpikes spikeChase:18:6.8 lowCeil cp landCrumble:0.2 fakeFloor ball:combo crumbleChase:18:6.9 dropAhead invis:bait reverse:hard pit:4 cp jumpSpikes ceil:0.3 lowCeil spikeChase:22:6.9 landCrumble:0.15 ball:combo invis:bait fakeFloor endFake' },
+    seq:'invis:bait reverse:hard ceil:0.3 jumpSpikes spikeChase:18:6.8 lowCeil cp landCrumble:0.2 pit ball:combo crumbleChase:18:6.9 dropAhead invis:bait reverse:hard pit:4 cp jumpSpikes ceil:0.3 lowCeil spikeChase:22:6.9 landCrumble:0.15 ball:combo invis:bait pit endFake' },
   { name:'No Mercy', hint:'It remembers you.', ghost:145,
-    seq:'spikeChase:20:6.9 lowCeil reverse:hard landCrumble:0.15 invis:bait ceil:0.3 ball:combo jumpSpikes crumbleChase:22:7 pit:4 cp lowCeil reverse:hard invis:bait landCrumble:0.15 fakeFloor ball:combo dropAhead spikeChase:24:7 ceil:0.3 jumpSpikes lowCeil reverse:hard pit:4 crumbleChase:22:7 invis:bait endFlee' },
+    seq:'spikeChase:20:6.9 lowCeil reverse:hard landCrumble:0.15 invis:bait ceil:0.3 ball:combo jumpSpikes crumbleChase:22:7 pit:4 cp lowCeil reverse:hard invis:bait landCrumble:0.15 pit ball:combo dropAhead spikeChase:24:7 ceil:0.3 jumpSpikes lowCeil reverse:hard pit:4 crumbleChase:22:7 invis:bait endFlee' },
   { name:'The Last Door', hint:'No tricks. Really.', ghost:150,
-    seq:'spikeChase:24:7 lowCeil landCrumble:0.15 invis:bait reverse:hard ceil:0.3 jumpSpikes ball:combo crumbleChase:24:7 pit:4 lowCeil fakeFloor invis:bait dropAhead cp ' +
+    seq:'spikeChase:24:7 lowCeil landCrumble:0.15 invis:bait reverse:hard ceil:0.3 jumpSpikes ball:combo crumbleChase:24:7 pit:4 lowCeil pit invis:bait dropAhead cp ' +
         'reverse:hard landCrumble:0.15 spikeChase:26:7.05 ceil:0.3 ball:combo lowCeil invis:bait jumpSpikes crumbleChase:26:7.05 pit:4 reverse:hard landCrumble:0.15 lowCeil ' +
-        'invis:bait ball:combo spikeChase:26:7.1 ceil:0.3 fakeFloor jumpSpikes crumbleChase:26:7.1 lowCeil endHop' },
+        'invis:bait ball:combo spikeChase:26:7.1 ceil:0.3 pit jumpSpikes crumbleChase:26:7.1 lowCeil endHop' },
 ];
 
 const QUIPS = ['Rest in pieces.','Boo.','Dead again.','Bone dry.','Trust no tile.','Grave mistake.','Skull issue.'];
@@ -325,45 +341,67 @@ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.unlocked)
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 
 /* ---------- audio: everything is synthesised, nothing is downloaded ---------- */
-let actx = null, master = null, noiseBuf = null, ambience = null, muted = false;
+let actx = null, master = null, revIn = null, noiseBuf = null, ambience = null, muted = false;
 try { muted = localStorage.getItem(SAVE_KEY + '-mute') === '1'; } catch (e) {}
+// mixer: every voice -> master -> compressor -> speakers, with an optional send into a generated reverb
 function audio() {
   if (!actx) {
     actx = new (window.AudioContext || window.webkitAudioContext)();
-    master = actx.createGain(); master.gain.value = muted ? 0 : 1; master.connect(actx.destination);
+    const comp = actx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 10; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.25;
+    comp.connect(actx.destination);
+    master = actx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(comp);
+    const len = Math.floor(actx.sampleRate * 2.4), ir = actx.createBuffer(2, len, actx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {                           // dark, decaying noise tail = a stone crypt
+      const d = ir.getChannelData(ch); let lp = 0;
+      for (let i = 0; i < len; i++) { lp += ((Math.random() * 2 - 1) - lp) * 0.35; d[i] = lp * Math.pow(1 - i / len, 3.2); }
+    }
+    const conv = actx.createConvolver(); conv.buffer = ir;
+    revIn = actx.createGain(); revIn.gain.value = 0.55; revIn.connect(conv); conv.connect(master);
     noiseBuf = actx.createBuffer(1, actx.sampleRate, actx.sampleRate);
     const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   }
   if (actx.state === 'suspended') actx.resume();
   return actx;
 }
-function tone(f1, f2, dur, type = 'sine', vol = 0.08, delay = 0, dest) {
+function out(g, rev) {
+  g.connect(master);
+  if (rev > 0) { const s2 = actx.createGain(); s2.gain.value = rev; g.connect(s2); s2.connect(revIn); }
+}
+function tone(f1, f2, dur, type = 'sine', vol = 0.08, delay = 0, rev = 0.12, attack = 0.008) {
   const t0 = actx.currentTime + delay, o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.setValueAtTime(f1, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t0 + dur);
-  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g).connect(dest || master); o.start(t0); o.stop(t0 + dur + 0.05);
+  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + attack); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); out(g, rev); o.start(t0); o.stop(t0 + dur + 0.05);
 }
-function noise(dur, f1, f2, q = 1, vol = 0.1, delay = 0, type = 'bandpass', attack = 0.01) {
+function noise(dur, f1, f2, q = 1, vol = 0.1, delay = 0, type = 'bandpass', attack = 0.01, rev = 0.1) {
   const t0 = actx.currentTime + delay, src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
   src.buffer = noiseBuf; src.loop = true; f.type = type; f.Q.value = q;
   f.frequency.setValueAtTime(f1, t0); f.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t0 + dur);
   g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(vol, t0 + attack); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  src.connect(f).connect(g).connect(master); src.start(t0); src.stop(t0 + dur + 0.05);
+  src.connect(f).connect(g); out(g, rev); src.start(t0); src.stop(t0 + dur + 0.05);
 }
-function clack(n, vol = 0.06, delay = 0) { for (let i = 0; i < n; i++) tone(1400 + Math.random() * 900, 900, 0.03, 'square', vol, delay + i * 0.035 + Math.random() * 0.02); }
+// a pad note: two slightly detuned voices with a slow swell (for choir-like chords)
+function pad(f, dur, vol, delay = 0, rev = 0.8) {
+  tone(f, f, dur, 'triangle', vol, delay, rev, 0.28); tone(f * 1.004, f * 1.004, dur, 'sine', vol * 0.8, delay, rev, 0.32);
+}
+function clack(n, vol = 0.05, delay = 0) {                   // dry little bone knocks
+  for (let i = 0; i < n; i++) tone(1500 + Math.random() * 900, 1000, 0.035, 'triangle', vol, delay + i * 0.04 + Math.random() * 0.02, 0.05, 0.002);
+}
 function sfx(kind) {
   try {
     audio();
     switch (kind) {
-      case 'jump': noise(0.16, 600, 2200, 1.2, 0.05); clack(1, 0.025); break;
-      case 'land': clack(2, 0.03); tone(110, 70, 0.08, 'triangle', 0.05); break;
-      case 'die':
-        tone(950, 180, 0.55, 'sawtooth', 0.05); tone(960, 190, 0.55, 'sawtooth', 0.04);
-        noise(0.5, 3000, 400, 0.8, 0.08); clack(6, 0.05, 0.05); break;
-      case 'trap': tone(90, 45, 0.3, 'triangle', 0.14); noise(0.25, 300, 80, 1, 0.06); break;
-      case 'thud': tone(70, 35, 0.35, 'sine', 0.2); noise(0.2, 200, 60, 1, 0.08); break;
-      case 'flag': tone(880, 880, 0.9, 'sine', 0.05); tone(1320, 1320, 0.7, 'sine', 0.025, 0.05); break;
-      case 'door': noise(0.6, 180, 900, 6, 0.08); tone(70, 60, 0.6, 'triangle', 0.06); break;
+      case 'jump': noise(0.2, 450, 1700, 0.9, 0.045, 0, 'bandpass', 0.03, 0.04); tone(240, 470, 0.12, 'sine', 0.075, 0, 0.04, 0.005); clack(1, 0.018); break;
+      case 'land': tone(140, 58, 0.15, 'sine', 0.13, 0, 0.05, 0.002); noise(0.1, 700, 200, 0.7, 0.05, 0, 'lowpass', 0.002, 0.05); clack(2, 0.02, 0.01); break;
+      case 'die':                                           // bones shatter, then an eerie falling tone
+        noise(0.35, 4200, 1200, 0.7, 0.09, 0, 'highpass', 0.002, 0.3); clack(7, 0.045, 0.02);
+        tone(523, 131, 0.9, 'sine', 0.06, 0.06, 0.6, 0.02); tone(784, 196, 0.9, 'triangle', 0.025, 0.06, 0.6, 0.02);
+        tone(90, 40, 0.3, 'sine', 0.18, 0, 0.2, 0.002); break;
+      case 'trap': tone(58, 38, 0.5, 'sine', 0.18, 0, 0.3, 0.01); noise(0.45, 320, 90, 0.7, 0.07, 0, 'lowpass', 0.02, 0.3); clack(2, 0.02, 0.05); break;
+      case 'thud': tone(70, 32, 0.45, 'sine', 0.25, 0, 0.25, 0.003); noise(0.25, 260, 60, 0.7, 0.1, 0, 'lowpass', 0.003, 0.2); break;
+      case 'flag': [1, 2.76, 5.4].forEach((m, i) => tone(660 * m, 660 * m, 1.6 / (i + 1), 'sine', 0.06 / (i + 1), 0, 0.7, 0.003)); pad(330, 1.2, 0.018, 0.05); pad(495, 1.2, 0.014, 0.05); break;
+      case 'door': noise(0.7, 120, 520, 4, 0.08, 0, 'bandpass', 0.05, 0.4); tone(55, 49, 0.7, 'triangle', 0.06, 0, 0.4, 0.05); break;
       case 'shriek':
         tone(1250, 2100, 0.5, 'sawtooth', 0.035); tone(1270, 2150, 0.5, 'sawtooth', 0.03); tone(630, 1050, 0.55, 'square', 0.02);
         noise(0.6, 5000, 2500, 1.5, 0.07, 0, 'bandpass', 0.03); break;
@@ -388,12 +426,13 @@ function sfx(kind) {
       }
       case 'whisper': noise(1.6, 1800, 900, 3, 0.05, 0, 'bandpass', 0.6); tone(466, 392, 1.4, 'sine', 0.025, 0.1); tone(440, 370, 1.4, 'sine', 0.025, 0.1); break;
       case 'beat': tone(62, 45, 0.16, 'sine', 0.22); tone(58, 42, 0.14, 'sine', 0.16, 0.2); break;
-      case 'win':
-        [220, 262, 330, 440, 523].forEach((f, i) => tone(f, f, 1.2, 'triangle', 0.045, i * 0.12));
-        tone(659, 659, 1.8, 'sine', 0.03, 0.65); noise(1.5, 4000, 6000, 0.5, 0.012, 0.6, 'highpass', 0.4); break;
-      case 'click': tone(220, 180, 0.06, 'triangle', 0.05); break;
+      case 'win':                                           // a haunting choir chord with chimes on top
+        [220, 261.6, 329.6, 493.9].forEach((f, i) => pad(f, 2.4, 0.03, i * 0.05));
+        [880, 1047, 1319, 1760].forEach((f, i) => tone(f, f, 1.3, 'sine', 0.035, 0.18 + i * 0.14, 0.7, 0.004));
+        noise(1.6, 5000, 7000, 0.5, 0.01, 0.4, 'highpass', 0.5, 0.6); break;
+      case 'click': tone(520, 360, 0.08, 'sine', 0.07, 0, 0.15, 0.002); noise(0.03, 3200, 2600, 1, 0.025, 0, 'highpass', 0.001, 0); break;
     }
-  } catch (e) {}
+  } catch (e) { window.__sfxError = String(e); }
 }
 // a low detuned drone, plus wind and creaks at random intervals
 let creakT = 4;
@@ -403,7 +442,7 @@ let moan = null;
 function moanNode() {
   if (moan || !actx) return moan;
   try {
-    const out = actx.createGain(); out.gain.value = 0; out.connect(master);
+    const out = actx.createGain(); out.gain.value = 0; out.connect(master); const rs = actx.createGain(); rs.gain.value = 0.35; out.connect(rs); rs.connect(revIn);
     const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 1.2; f.connect(out);
     const vib = actx.createOscillator(), vg = actx.createGain(); vib.frequency.value = 4.6; vg.gain.value = 9; vib.connect(vg); vib.start();
     const voices = [0, 7].map((det, i) => {
@@ -437,8 +476,8 @@ function startAmbience() {
     const g = actx.createGain(); g.gain.value = 0.0001; g.gain.linearRampToValueAtTime(0.05, actx.currentTime + 3);
     const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 240; f.Q.value = 4;
     const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 120; lfo.connect(lg).connect(f.frequency); lfo.start();
-    [55, 55.6, 82.4].forEach(fr => { const o = actx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr; o.connect(f); o.start(); });
-    f.connect(g).connect(master); ambience = g;
+    [55, 55.4, 82.4, 110.2].forEach((fr, i) => { const o = actx.createOscillator(); o.type = i < 2 ? 'triangle' : 'sine'; o.frequency.value = fr; o.connect(f); o.start(); });
+    f.connect(g); out(g, 0.5); ambience = g;
   } catch (e) {}
 }
 function ambientTick(dt) {
@@ -491,31 +530,50 @@ function dirAt(x, pad) {                     // left half of the pad = left, rig
   const r = pad.getBoundingClientRect(); return x < r.left + r.width / 2 ? 'left' : 'right';
 }
 const movePad = document.getElementById('movePad'), jumpPad = document.getElementById('jumpPad');
-movePad.addEventListener('pointerdown', e => { e.preventDefault(); try { movePad.setPointerCapture(e.pointerId); } catch (_) {} moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); });
+function pressFx(el) { el.classList.remove('ripple'); void el.offsetWidth; el.classList.add('ripple'); buzz(8); }
+movePad.addEventListener('pointerdown', e => { e.preventDefault(); pressFx(btnEls[dirAt(e.clientX, movePad)]); try { movePad.setPointerCapture(e.pointerId); } catch (_) {} moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); });
 movePad.addEventListener('pointermove', e => { if (moveFingers.has(e.pointerId)) { moveFingers.set(e.pointerId, dirAt(e.clientX, movePad)); syncMove(); } });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) movePad.addEventListener(ev, e => { moveFingers.delete(e.pointerId); syncMove(); });
 const jumpFingers = new Set();
 jumpPad.addEventListener('pointerdown', e => { e.preventDefault(); try { jumpPad.setPointerCapture(e.pointerId); } catch (_) {}
-  if (!jumpFingers.size) jumpPressed = true; jumpFingers.add(e.pointerId); keys.jump = true; btnEls.jump.classList.add('on'); });
+  if (!jumpFingers.size) { jumpPressed = true; pressFx(btnEls.jump); } jumpFingers.add(e.pointerId); keys.jump = true; btnEls.jump.classList.add('on'); });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) jumpPad.addEventListener(ev, e => {
   jumpFingers.delete(e.pointerId); if (!jumpFingers.size) { keys.jump = false; btnEls.jump.classList.remove('on'); } });
 addEventListener('contextmenu', e => { if (isInGame()) e.preventDefault(); });
+document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('button'); if (b && !b.disabled) { sfx('click'); buzz(6); } });
 document.addEventListener('visibilitychange', () => { if (document.hidden && isInGame()) pause(); });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 
 /* ---------- canvas + cached art ---------- */
 const cv = document.getElementById('game'), ctx = cv.getContext('2d', { alpha: false });
 let SCALE = 1, bgCache = null, glowCache = null, fogCache = null, fearCache = null;
+// VW x VH: how much of the world is on screen (world units). Desktop shows the classic 960 x 540.
+// Phones zoom in so a tile is ~34 CSS px and the skeleton is ~10% of the screen height.
+// The HUD is drawn in its own units (HUDW x HUDH) so text keeps a readable size on any screen.
+let VW = W, VH = H, HUDW = W, HUDH = H, HUDS = 1, touchLayout = false;
+const TILE_CSS = 34;
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
 function fitStage() {
   const wrap = document.getElementById('wrap'), st = document.getElementById('stage');
   const cs = getComputedStyle(wrap);
   const aw = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const ah = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-  const portraitTouch = document.body.classList.contains('touch') && wrap.clientHeight > wrap.clientWidth;
-  const budget = portraitTouch ? Math.max(120, ah - 230) : ah;          // keep at least 230px for the controls
-  let w = aw, h = w * 9 / 16; if (h > budget) { h = budget; w = h * 16 / 9; }
+  const touchUI = document.body.classList.contains('touch');
+  let w, h;
+  if (touchUI && aw >= ah) {                      // phone on its side: use the whole screen, zoomed in
+    w = aw; h = ah;
+    const ppu = Math.max(h / H, Math.min(TILE_CSS / T, h / 300));   // CSS px per world unit
+    VH = h / ppu; VW = w / ppu;
+  } else if (touchUI) {                           // phone upright: game on top, controls below
+    w = aw; VW = 560; const ppu = w / VW;
+    VH = Math.min(330, Math.max(240, (ah - 230) / ppu)); h = VH * ppu;
+  } else {                                        // desktop: classic 16:9 view
+    w = aw; h = w * 9 / 16; if (h > ah) { h = ah; w = h * 16 / 9; }
+    VW = W; VH = H;
+  }
+  touchLayout = touchUI;
   st.style.width = Math.floor(w) + 'px'; st.style.height = Math.floor(h) + 'px';
+  HUDW = touchUI ? Math.max(320, w) : W; HUDH = HUDW * h / w;
 }
 function resize() {
   fitStage();
@@ -523,7 +581,8 @@ function resize() {
   let dpr = Math.min(window.devicePixelRatio || 1, isTouch ? 1.75 : 2);     // phones: a little lighter for smooth frame rates
   if (r.width * dpr > 1920) dpr = 1920 / Math.max(1, r.width);          // keep the pixel count sane on big screens
   cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
-  SCALE = cv.width / W; buildCaches();
+  SCALE = cv.width / VW; HUDS = cv.width / HUDW; buildCaches();
+  if (L && P) { L.cam = camTarget(); L.camY = camTargetY(); }
 }
 addEventListener('resize', resize);
 try { new ResizeObserver(() => resize()).observe(document.getElementById('wrap')); } catch (e) {}
@@ -538,23 +597,24 @@ const BG = (() => {
 function buildCaches() {
   // sky, stars, moon and vignette are drawn once into an offscreen canvas
   bgCache = makeCanvas(cv.width, cv.height); const g = bgCache.getContext('2d'); g.scale(SCALE, SCALE);
-  const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, C.sky1); sky.addColorStop(0.65, C.sky2); sky.addColorStop(1, C.sky3);
-  g.fillStyle = sky; g.fillRect(0, 0, W, H);
-  for (const s of BG.stars) { g.globalAlpha = s.a; g.fillStyle = '#fff'; g.beginPath(); g.arc(s.x, s.y, s.r, 0, 7); g.fill(); }
+  const sky = g.createLinearGradient(0, 0, 0, VH); sky.addColorStop(0, C.sky1); sky.addColorStop(0.65, C.sky2); sky.addColorStop(1, C.sky3);
+  g.fillStyle = sky; g.fillRect(0, 0, VW, VH);
+  for (const st of BG.stars) for (let ox = 0; ox < VW; ox += W) { g.globalAlpha = st.a; g.fillStyle = '#fff'; g.beginPath(); g.arc(st.x + ox, st.y * VH / H, st.r, 0, 7); g.fill(); }
   g.globalAlpha = 1;
-  const mg = g.createRadialGradient(790, 120, 10, 790, 120, 150);
+  const mx = VW - 170, my = Math.min(120, VH * 0.24), mR = Math.min(34, VH * 0.08);
+  const mg = g.createRadialGradient(mx, my, 10, mx, my, mR * 4.4);
   mg.addColorStop(0, 'rgba(' + C.moonGlow + ',.35)'); mg.addColorStop(1, 'rgba(' + C.moonGlow + ',0)');
-  g.fillStyle = mg; g.fillRect(620, 0, 340, 300);
-  g.fillStyle = C.moon; g.beginPath(); g.arc(790, 120, 34, 0, 7); g.fill();
-  g.fillStyle = 'rgba(0,0,0,.18)'; for (const [cx, cy, r] of [[778, 112, 7], [802, 132, 5], [796, 104, 3]]) { g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); }
-  for (const [x, y, w] of [[720, 130, 130], [780, 146, 100], [700, 100, 80]]) {   // soft clouds across the moon
-    const cg = g.createRadialGradient(x + w / 2, y, 2, x + w / 2, y, w / 2);
+  g.fillStyle = mg; g.fillRect(mx - mR * 5, 0, mR * 10, my + mR * 5);
+  g.fillStyle = C.moon; g.beginPath(); g.arc(mx, my, mR, 0, 7); g.fill();
+  g.fillStyle = 'rgba(0,0,0,.18)'; for (const [cx, cy, r] of [[-12, -8, 7], [12, 12, 5], [6, -16, 3]]) { g.beginPath(); g.arc(mx + cx * mR / 34, my + cy * mR / 34, r * mR / 34, 0, 7); g.fill(); }
+  for (const [x, y, w2] of [[-70, 10, 130], [-10, 26, 100], [-90, -20, 80]]) {   // soft clouds across the moon
+    const cx = mx + x * mR / 34 + w2 / 2, cy = my + y * mR / 34, cg = g.createRadialGradient(cx, cy, 2, cx, cy, w2 / 2);
     cg.addColorStop(0, 'rgba(5,6,10,.7)'); cg.addColorStop(1, 'rgba(5,6,10,0)');
-    g.save(); g.translate(x + w / 2, y); g.scale(1, 0.14); g.translate(-(x + w / 2), -y); g.fillStyle = cg; g.beginPath(); g.arc(x + w / 2, y, w / 2, 0, 7); g.fill(); g.restore();
+    g.save(); g.translate(cx, cy); g.scale(1, 0.14); g.translate(-cx, -cy); g.fillStyle = cg; g.beginPath(); g.arc(cx, cy, w2 / 2, 0, 7); g.fill(); g.restore();
   }
-  const vg = g.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.95);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
-  // drifting ground fog
+  const vg = g.createRadialGradient(VW / 2, VH / 2, VH * 0.3, VW / 2, VH / 2, Math.max(VW, VH) * 0.75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)'); g.fillStyle = vg; g.fillRect(0, 0, VW, VH);
+  // drifting ground fog (one 960-wide strip, tiled while drawing)
   fogCache = makeCanvas(W * SCALE, 180 * SCALE); const fg = fogCache.getContext('2d'); fg.scale(SCALE, SCALE);
   let sd = 3; const rr = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
   for (let i = 0; i < 26; i++) {
@@ -564,8 +624,8 @@ function buildCaches() {
   }
   // red edge vignette shown when a ghost is close
   fearCache = makeCanvas(cv.width, cv.height); const fc = fearCache.getContext('2d'); fc.scale(SCALE, SCALE);
-  const fv = fc.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.9);
-  fv.addColorStop(0, 'rgba(120,0,10,0)'); fv.addColorStop(1, 'rgba(120,0,10,.75)'); fc.fillStyle = fv; fc.fillRect(0, 0, W, H);
+  const fv = fc.createRadialGradient(VW / 2, VH / 2, VH * 0.25, VW / 2, VH / 2, Math.max(VW, VH) * 0.7);
+  fv.addColorStop(0, 'rgba(120,0,10,0)'); fv.addColorStop(1, 'rgba(120,0,10,.75)'); fc.fillStyle = fv; fc.fillRect(0, 0, VW, VH);
   // door glow sprite (blur is expensive, so it is baked once)
   glowCache = makeCanvas(90 * SCALE, 110 * SCALE); const d = glowCache.getContext('2d'); d.scale(SCALE, SCALE);
   d.shadowColor = C.door; d.shadowBlur = 18; d.strokeStyle = C.door; d.lineWidth = 6;
@@ -610,7 +670,7 @@ function buildLevel(i) {
   for (const [k, c] of cells) {
     const x = Math.floor(k / ROWS), y = k % ROWS;
     if (c.k === 't') {
-      const t = { x: px(x), y: px(y), w: T, h: T, g: c.g || null, solid: !c.fake, visible: !c.hidden, hiddenTile: !!c.hidden,
+      const t = { x: px(x), y: px(y), w: T, h: T, g: c.g || null, solid: !c.fake, visible: !c.hidden, hiddenTile: !!c.hidden, crack: !!c.crack,
         seed: (x * 73 + y * 151) % 97, vy: 0, crumbleAt: Infinity, falling: false, top: true, bottom: true };
       if (t.g) { lv.dyn.push(t); (lv.groupTiles[t.g] = lv.groupTiles[t.g] || []).push(t); }
       else lv.grid[key(x, y)] = t;
@@ -639,11 +699,13 @@ function loadLevel(i, keepCp) {
   }
   P = { x: sx, y: sy, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1,
         walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0 };
-  jumpPressed = false; particles = []; shake = 0; L.cam = camTarget();
+  jumpPressed = false; particles = []; shake = 0; L.cam = camTarget(); L.camY = camTargetY();
   L.ghost = L.def.ghost ? { x: P.x - 460, y: P.y - 80, speed: L.def.ghost, at: 1.4, a: 0, beat: 0, woke: false, talk: 2, armed: true, trail: [], scare: 0 } : null;
 }
-function camPad() { return document.body.classList.contains('touch') && innerWidth > innerHeight ? 150 : 0; }
-function camTarget() { const pad = camPad(); return Math.max(-pad, Math.min(L.W - W + pad, P.x + P.w / 2 - W * 0.4 + P.face * 30)); }
+// on phones the camera may run a little past the level ends so the player and door never sit under the controls
+function camTarget() { const pad = touchLayout ? 120 : 0; return Math.max(-pad, Math.min(L.W - VW + pad, P.x + P.w / 2 - VW * (touchLayout ? 0.44 : 0.4) + P.face * 30)); }
+// vertical camera (only when zoomed in): keep the feet at ~72% of the view so the ground sits behind the thumb buttons
+function camTargetY() { const maxY = Math.max(0, 516 - VH); return Math.max(0, Math.min(maxY, P.y + P.h - VH * 0.72)); }
 function respawn(manual) { if (manual && state === 'play') { levelDeaths++; deaths++; } loadLevel(levelIndex, true); state = 'play'; }
 
 /* ---------- collision helpers ---------- */
@@ -938,7 +1000,7 @@ function update(dt) {
   else if (state === 'dead') { updateWorld(dt); stateT -= dt; if (stateT <= 0) respawn(false); }
   else if (state === 'win') { stateT -= dt; P.alpha = Math.max(0, stateT / 0.8);
     P.x += ((L.door.x + (T - PW) / 2) - P.x) * Math.min(1, dt * 10); if (stateT <= 0) showCard(); }
-  if (state === 'play' || state === 'win') L.cam += (camTarget() - L.cam) * Math.min(1, dt * 6);
+  if (state === 'play' || state === 'win') { L.cam += (camTarget() - L.cam) * Math.min(1, dt * 6); L.camY += (camTargetY() - L.camY) * Math.min(1, dt * 5); }
 }
 
 let last = performance.now(), acc = 0;
@@ -953,13 +1015,14 @@ function frame(now) {
 /* ---------- render ---------- */
 function roundRect(x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
 function doorPath(c, x, y, w, h) { const r = w / 2; c.beginPath(); c.moveTo(x, y + h); c.lineTo(x, y + r); c.arc(x + r, y + r, r, Math.PI, 0); c.lineTo(x + w, y + h); c.closePath(); }
-function drawHill(f, off, color, props) {
-  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, H);
-  for (let x = 0; x <= W + 24; x += 24) ctx.lineTo(x, f(x + off));
-  ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
-  if (!props) return;
+function drawHill(f, off, color, props, dy = 0) {
+  ctx.save(); ctx.translate(0, -dy);
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, VH + dy);
+  for (let x = 0; x <= VW + 24; x += 24) ctx.lineTo(x, f(x + off));
+  ctx.lineTo(VW, VH + dy); ctx.closePath(); ctx.fill();
+  if (!props) { ctx.restore(); return; }
   ctx.strokeStyle = color; ctx.lineCap = 'round';
-  for (let k = Math.floor(off / 110) - 1; k <= Math.floor((off + W) / 110) + 1; k++) {
+  for (let k = Math.floor(off / 110) - 1; k <= Math.floor((off + VW) / 110) + 1; k++) {
     const h = ((k * 2654435761) >>> 0) % 1000, x = k * 110 + (h % 60) - off, y = f(x + off) + 4;
     if (h < 300) {                                     // dead tree
       const s = 0.8 + (h % 7) / 10; ctx.lineWidth = 4 * s;
@@ -972,6 +1035,7 @@ function drawHill(f, off, color, props) {
       else { ctx.fillRect(x - 2, y - 24, 4, 26); ctx.fillRect(x - 8, y - 18, 16, 4); }
     }
   }
+  ctx.restore();
 }
 function drawDoor(d, time, chomp) {
   const x = d.x + 3, w = d.w - 6, a = d.appear ?? 1;
@@ -1009,6 +1073,17 @@ function drawTile(t, ox, oy) {
     ctx.setLineDash([4, 4]); ctx.strokeStyle = C.glow; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, T - 2, T - 2); ctx.setLineDash([]);
     return;
   }
+  if (t.crack) {                                   // weak floor: dark, broken and clearly different
+    ctx.fillStyle = '#2b2830'; ctx.fillRect(x, y, T + 0.5, T + 0.5);
+    ctx.fillStyle = '#4b4654'; ctx.fillRect(x + 1, y + 1, 12, 9); ctx.fillRect(x + 15, y + 2, 13, 7); ctx.fillRect(x + 3, y + 13, 10, 8); ctx.fillRect(x + 17, y + 12, 11, 10);
+    if (t.top || t.falling) { ctx.fillStyle = '#8b5560'; ctx.fillRect(x, y, T + 0.5, 3); }
+    ctx.strokeStyle = '#0d0c10'; ctx.lineWidth = 1.6; ctx.beginPath();
+    ctx.moveTo(x + 4 + t.seed % 6, y); ctx.lineTo(x + 11, y + 9); ctx.lineTo(x + 8, y + 17); ctx.lineTo(x + 15, y + 30);
+    ctx.moveTo(x + 11, y + 9); ctx.lineTo(x + 22, y + 13); ctx.lineTo(x + 30, y + 10);
+    ctx.moveTo(x + 22, y + 13); ctx.lineTo(x + 24, y + 24);
+    ctx.stroke();
+    return;
+  }
   ctx.fillStyle = C.tile; ctx.fillRect(x, y, T + 0.5, T + 0.5);
   ctx.fillStyle = C.tileDot;
   ctx.fillRect(x + 4 + t.seed % 17, y + 9 + t.seed % 13, 3, 2);
@@ -1035,8 +1110,8 @@ function render(time) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   if (bgCache) ctx.drawImage(bgCache, 0, 0); else { ctx.fillStyle = C.sky1; ctx.fillRect(0, 0, cv.width, cv.height); }
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
-  const cam = L ? L.cam : 0;
-  drawHill(BG.far, cam * 0.15, C.hill1, false); drawHill(BG.near, cam * 0.3, C.hill2, true);
+  const cam = L ? L.cam : 0, camY = L ? L.camY || 0 : 0;
+  drawHill(BG.far, cam * 0.15, C.hill1, false, camY * 0.6); drawHill(BG.near, cam * 0.3, C.hill2, true, camY * 0.85);
   if (!L) return;
 
   ctx.save();
@@ -1044,16 +1119,16 @@ function render(time) {
   let eatPivot = null;
   if (state === 'eaten' && L.ghost) {
     const zk = Math.min(1, stateT / 0.4), z = 1 + 0.9 * zk * zk * (3 - 2 * zk);
-    eatPivot = { x: L.ghost.x - cam, y: L.ghost.y };
+    eatPivot = { x: L.ghost.x - cam, y: L.ghost.y - camY };
     ctx.translate(eatPivot.x, eatPivot.y); ctx.scale(z, z); ctx.translate(-eatPivot.x, -eatPivot.y);
   }
-  ctx.translate(-Math.round(cam), 0);
-  const c1 = Math.max(0, Math.floor(cam / T) - 1), c2 = Math.min(L.cols - 1, Math.floor((cam + W) / T) + 1);
+  ctx.translate(-Math.round(cam), -Math.round(camY));
+  const c1 = Math.max(0, Math.floor(cam / T) - 1), c2 = Math.min(L.cols - 1, Math.floor((cam + VW) / T) + 1);
 
-  for (const f of L.flags) if (f.x > cam - 40 && f.x < cam + W + 40) drawFlag(f, time);
+  for (const f of L.flags) if (f.x > cam - 40 && f.x < cam + VW + 40) drawFlag(f, time);
   if (levelIndex < 3) {
     ctx.font = '700 13px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
-    for (const lb of L.labels) if (lb.x > cam - 120 && lb.x < cam + W + 120) {
+    for (const lb of L.labels) if (lb.x > cam - 120 && lb.x < cam + VW + 120) {
       ctx.fillStyle = 'rgba(141,255,196,.75)'; ctx.fillText(lb.text, lb.x, lb.y); ctx.fillText('▲', lb.x, lb.y + 16);
     }
   }
@@ -1065,7 +1140,7 @@ function render(time) {
     const t = L.grid[c * ROWS + r]; if (t && t.visible) drawTile(t, 0, 0);
   }
   for (const t of L.dyn) {
-    if (!t.visible || t.x < cam - 2 * T || t.x > cam + W + T) continue;
+    if (!t.visible || t.x < cam - 2 * T || t.x > cam + VW + T) continue;
     const st = L.groups[t.g], shaking = (t.crumbleAt !== Infinity && !t.falling) || (st && L.t < st.at);
     drawTile(t, shaking ? (Math.random() - .5) * 3 : 0, shaking ? (Math.random() - .5) * 2 : 0);
   }
@@ -1089,6 +1164,20 @@ function render(time) {
       ctx.translate(-(P.x + P.w / 2), -(P.y + P.h / 2)); drawPlayer(time); ctx.restore();
     }
   }
+  // warning markers for danger that is off screen
+  for (const b of L.balls) if (b.y < camY + 6) {
+    const a = 0.6 + 0.4 * Math.sin(time * 20); ctx.globalAlpha = a; ctx.fillStyle = C.spike;
+    ctx.beginPath(); ctx.moveTo(b.x - 9, camY + 6); ctx.lineTo(b.x + 9, camY + 6); ctx.lineTo(b.x, camY + 20); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '900 11px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', b.x, camY + 16); ctx.globalAlpha = 1;
+  }
+  if (L.ghost && L.ghost.a > 0 && L.ghost.x < cam - 10 && state === 'play') {
+    const G = L.ghost, gy = Math.max(camY + 40, Math.min(camY + VH - 40, G.y)), pulse = 0.55 + 0.45 * Math.sin(time * 8);
+    const near = Math.max(0, 1 - (cam - G.x) / 500);
+    ctx.globalAlpha = 0.35 + 0.5 * near * pulse; ctx.fillStyle = C.ghost;
+    ctx.beginPath(); ctx.arc(cam + 18, gy - 3, 9, Math.PI, 0); ctx.lineTo(cam + 27, gy + 9); ctx.lineTo(cam + 9, gy + 9); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#c8202f'; ctx.beginPath(); ctx.arc(cam + 15, gy - 3, 1.6, 0, 7); ctx.arc(cam + 21, gy - 3, 1.6, 0, 7); ctx.fill();
+    ctx.globalAlpha = 1;
+  }
   if (L.reverse && state === 'play') {
     ctx.fillStyle = '#b9a8ff'; ctx.font = '800 16px ui-rounded,system-ui,sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('⇄', P.x + P.w / 2, P.y - 14);
@@ -1102,50 +1191,52 @@ function render(time) {
 
   if (L.ghost && L.ghost.dist !== undefined && L.ghost.a > 0 && fearCache) {
     const fear = Math.max(0, 1 - L.ghost.dist / 300);
-    if (fear > 0) { ctx.globalAlpha = fear * (0.75 + 0.25 * Math.sin(time * 10)); ctx.drawImage(fearCache, 0, 0, W, H); ctx.globalAlpha = 1; }
+    if (fear > 0) { ctx.globalAlpha = fear * (0.75 + 0.25 * Math.sin(time * 10)); ctx.drawImage(fearCache, 0, 0, VW, VH); ctx.globalAlpha = 1; }
   }
-  if (fogCache) { const fo = (time * 14 + cam * 0.6) % W; ctx.globalAlpha = 0.75; ctx.drawImage(fogCache, -fo, H - 190, W, 180); ctx.drawImage(fogCache, W - fo, H - 190, W, 180); ctx.globalAlpha = 1; }
-  if (flash > 0) { ctx.fillStyle = 'rgba(150,0,15,' + (flash * 0.35) + ')'; ctx.fillRect(0, 0, W, H); }
-  if (state === 'eaten') drawDevourOverlay(time);
+  if (fogCache) { const fo = (time * 14 + cam * 0.6) % W; ctx.globalAlpha = 0.75; for (let x = -fo; x < VW; x += W) ctx.drawImage(fogCache, x, 350 - camY, W, 180); ctx.globalAlpha = 1; }
+  if (flash > 0) { ctx.fillStyle = 'rgba(150,0,15,' + (flash * 0.35) + ')'; ctx.fillRect(0, 0, VW, VH); }
 
-  // HUD: level number + name, a thin progress bar, and the hint on the first try
+  // HUD (its own units): level number + name, a thin progress bar, and the hint on the first try
+  ctx.setTransform(HUDS, 0, 0, HUDS, 0, 0);
+  const hx = touchLayout ? 16 : 22;
   if ((isInGame() && state !== 'eaten') || state === 'complete') {
     ctx.textAlign = 'left'; ctx.font = '700 13px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.muted;
-    ctx.fillText('LEVEL ' + (levelIndex + 1), 22, 30);
+    ctx.fillText('LEVEL ' + (levelIndex + 1), hx, 30);
     ctx.font = '800 20px ui-rounded,system-ui,sans-serif'; ctx.fillStyle = C.ink;
-    ctx.fillText(L.def.name, 22, 53);
+    ctx.fillText(L.def.name, hx, 53);
     const prog = Math.max(0, Math.min(1, P.x / (L.door.x || L.W)));
-    ctx.fillStyle = 'rgba(233,228,216,.12)'; roundRect(22, 64, 150, 4, 2); ctx.fill();
-    ctx.fillStyle = C.door; roundRect(22, 64, Math.max(4, 150 * prog), 4, 2); ctx.fill();
-    for (const f of L.flags) { const fx = 22 + 150 * Math.min(1, f.x / (L.door.x || L.W)); ctx.fillStyle = f.on ? C.flag : '#4a4754'; ctx.fillRect(fx - 1, 61, 2, 10); }
+    ctx.fillStyle = 'rgba(233,228,216,.12)'; roundRect(hx, 64, 150, 4, 2); ctx.fill();
+    ctx.fillStyle = C.door; roundRect(hx, 64, Math.max(4, 150 * prog), 4, 2); ctx.fill();
+    for (const f of L.flags) { const fx = hx + 150 * Math.min(1, f.x / (L.door.x || L.W)); ctx.fillStyle = f.on ? C.flag : '#4a4754'; ctx.fillRect(fx - 1, 61, 2, 10); }
     const ha = levelDeaths === 0 && cpIndex < 0 ? Math.max(0, Math.min(1, L.t * 3, (3.2 - L.t) * 2)) : 0;
     if (ha > 0) {
       ctx.globalAlpha = ha * 0.85; ctx.textAlign = 'center'; ctx.fillStyle = C.ink; ctx.font = '600 18px ui-rounded,system-ui,sans-serif';
-      ctx.fillText(L.def.hint, W / 2, 110); ctx.globalAlpha = 1;
+      ctx.fillText(L.def.hint, HUDW / 2, Math.max(92, HUDH * 0.2)); ctx.globalAlpha = 1;
     }
   }
+  if (state === 'eaten') { ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0); drawDevourOverlay(time); }
   if (state === 'dead') {
     ctx.textAlign = 'center'; ctx.fillStyle = '#e23a48'; ctx.font = '900 34px ui-rounded,system-ui,sans-serif';
-    ctx.fillText(quip, W / 2, 150);
+    ctx.fillText(quip, HUDW / 2, Math.max(110, HUDH * 0.28));
   }
 }
 
 function drawDevourOverlay(time) {
-  const t = stateT, G = L.ghost, cx = G.x - L.cam, cy = G.y;
-  ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.55, t * 1.6) + ')'; ctx.fillRect(0, 0, W, H);
+  const t = stateT, G = L.ghost, cx = G.x - L.cam, cy = G.y - (L.camY || 0);
+  ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.55, t * 1.6) + ')'; ctx.fillRect(0, 0, VW, VH);
   if (t > 1.35) {                                                            // the world closes in around its face
-    const r = Math.max(0, 640 * (1 - (t - 1.35) / 0.6));
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.moveTo(cx + r, cy); ctx.arc(cx, cy, r, 0, Math.PI * 2, true); ctx.fill('evenodd');
+    const r = Math.max(0, Math.max(VW, VH) * 0.75 * (1 - (t - 1.35) / 0.6));
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.rect(0, 0, VW, VH); ctx.moveTo(cx + r, cy); ctx.arc(cx, cy, r, 0, Math.PI * 2, true); ctx.fill('evenodd');
     if (r > 0) { ctx.strokeStyle = 'rgba(200,20,35,.6)'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke(); }
   }
   if (t > 1.95) {
     const a = Math.min(1, (t - 1.95) * 4) * (Math.random() < 0.08 ? 0.4 : 1);
     ctx.globalAlpha = a; ctx.textAlign = 'center';
     ctx.fillStyle = '#c8202f'; ctx.font = '900 64px ui-rounded,system-ui,sans-serif';
-    ctx.fillText('DEVOURED', W / 2 + (Math.random() - 0.5) * 3, H / 2 + 10);
+    ctx.fillText('DEVOURED', VW / 2 + (Math.random() - 0.5) * 3, VH / 2 + 10);
     ctx.fillStyle = 'rgba(200,32,47,.5)';
-    for (let i = 0; i < 6; i++) { const dx = W / 2 - 150 + i * 58 + (i * 37) % 23, len = 8 + ((t - 1.95) * 60 * (0.5 + (i % 3) * 0.3)); ctx.fillRect(dx, H / 2 + 14, 3, len); }
-    ctx.fillStyle = C.muted; ctx.font = '600 15px ui-rounded,system-ui,sans-serif'; ctx.fillText('it was right behind you', W / 2, H / 2 + 60);
+    for (let i = 0; i < 6; i++) { const dx = VW / 2 - 150 + i * 58 + (i * 37) % 23, len = 8 + ((t - 1.95) * 60 * (0.5 + (i % 3) * 0.3)); ctx.fillRect(dx, VH / 2 + 14, 3, len); }
+    ctx.fillStyle = C.muted; ctx.font = '600 15px ui-rounded,system-ui,sans-serif'; ctx.fillText('it was right behind you', VW / 2, VH / 2 + 60);
     ctx.globalAlpha = 1;
   }
 }
@@ -1262,13 +1353,13 @@ function showEnd() {
     (deaths < 50 ? 'Suspiciously good.' : deaths < 200 ? 'Very reasonable.' : 'Totally fair game, right?');
 }
 function startFrom(i) {
-  startAmbience(); paused = false; levelDeaths = 0; levelTime = 0; loadLevel(i, false); state = 'play'; show(null); sfx('click');
+  startAmbience(); paused = false; levelDeaths = 0; levelTime = 0; loadLevel(i, false); state = 'play'; show(null);
 }
-function goNext() { sfx('click'); if (levelIndex + 1 >= LEVELS.length) return showEnd(); startFrom(levelIndex + 1); }
+function goNext() { if (levelIndex + 1 >= LEVELS.length) return showEnd(); startFrom(levelIndex + 1); }
 function goPrev() { if (levelIndex > 0) startFrom(levelIndex - 1); }
 function replay() { startFrom(levelIndex); }
 function toggleMute() {
-  muted = !muted; try { if (master) master.gain.value = muted ? 0 : 1; } catch (e) {} $('btnMute').textContent = muted ? '×' : '♪';
+  muted = !muted; try { if (master) master.gain.value = muted ? 0 : 0.9; } catch (e) {} $('btnMute').textContent = muted ? '×' : '♪';
   try { localStorage.setItem(SAVE_KEY + '-mute', muted ? '1' : '0'); } catch (e) {}
 }
 
@@ -1314,7 +1405,8 @@ loadLevel(0, false); resize(); showMenu(); requestAnimationFrame(frame);
 // hooks for the automated test bot (?test disables the real-time loop)
 window.__TI = { keys, get state() { return state; }, get P() { return P; }, get L() { return L; }, get level() { return levelIndex; },
   get time() { return levelTime; }, press() { jumpPressed = true; }, step(n) { for (let i = 0; i < n; i++) update(STEP); },
-  start: startFrom, LEVELS, render: () => render(performance.now() / 1000) };
+  start: startFrom, LEVELS, render: () => render(performance.now() / 1000),
+  view: () => ({ VW, VH, cam: L.cam, camY: L.camY }), sfx, audioNodes: () => ({ actx, master }) };
 })();
 </script>
 </body>
