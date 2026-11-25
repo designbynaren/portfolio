@@ -380,7 +380,8 @@ const SECTIONS = {
   },
   wraiths(b, ox, a) {                 // small ghosts that drift at you: slash them or stomp on their heads
     const n = +a[0] || 2; b.ground(ox, ox + 9 + n * 5);
-    for (let i = 0; i < n; i++) b.wraiths.push({ x: px(ox + 9 + i * 5), y: px(15) - 26 });
+    for (let i = 0; i < n; i++) { const fly = i % 3 === 2;
+      b.wraiths.push({ x: px(ox + 9 + i * 5), y: fly ? px(15) - 52 : px(15) - 15, kind: fly ? 'flyer' : 'walker', v: (ox * 7 + i * 13) % 4 }); }
     return 10 + n * 5;
   },
   wall(b, ox) { b.ground(ox, ox + 8); b.tiles(ox + 5, 13, ox + 5, 14); b.meta.jumps.push([px(ox + 5) - 62, px(ox + 5) - 48]); return 9; },
@@ -418,7 +419,7 @@ const LEVELS = [
     seq:'ceil wall ceil:0.3 cp ball lowCeil bigPit pit ball:combo cp ceil:0.3 rise lowCeil crumbleStep cp tallWall ceil ball:combo lowCeil wall pit:4 landCrumble:0.25 endFake'},
   { name:'Leap of Faith', hint:'Trust the invisible.',
     seq:'invis wraiths:2 cp pit invis:bait pit:4 cp landCrumble:0.25 bigPit jumpSpikes invis:bait cp dropAhead pit wraiths:3 lowCeil invis:bait crumbleChase:14:6.6 cp rise wraiths:2 ceil:0.3 landCrumble:0.2 endHop'},
-  { name:'Wraith Hollow', hint:'They hunt in packs.',
+  { name:'Wraith Hollow', hint:'The dead walk here.',
     seq:'wraiths:2 rise cp wraiths:3 wraiths:2 pit pit:4 cp jumpSpikes wraiths:2 tallWall crumbleChase:16:6.6 cp wraiths:3 landCrumble:0.25 wraiths:3 lowCeil wraiths:3 ball:combo invis:bait endFlee'},
   { name:'Keep Moving', hint:'Don\'t stop. It won\'t.', ghost:150,
     seq:'spikeChase:14:6.2 cp spikeChase:18:6.5 wraiths:2 crumbleChase:14:6.6 cp landCrumble:0.2 spikeChase:20:6.7 pit:4 lowCeil bigPit cp crumbleChase:20:6.8 jumpSpikes spikeChase:22:6.8 wraiths:3 wraiths:3 landCrumble:0.2 crumbleChase:20:6.9 endFake'},
@@ -501,7 +502,7 @@ function pad(f, dur, vol, delay = 0, rev = 0.8) {
 function clack(n, vol = 0.05, delay = 0) {                   // dry little bone knocks
   for (let i = 0; i < n; i++) tone(1500 + Math.random() * 900, 1000, 0.035, 'triangle', vol, delay + i * 0.04 + Math.random() * 0.02, 0.05, 0.002);
 }
-function sfx(kind) {
+function sfx(kind, pan = 0) {
   try {
     audio();
     switch (kind) {
@@ -550,6 +551,18 @@ function sfx(kind) {
       case 'hit': noise(0.09, 1800, 600, 0.8, 0.16, 0, 'bandpass', 0.002, 0.2); tone(140, 60, 0.14, 'sine', 0.14, 0, 0.2, 0.002); break;
       case 'banish': noise(0.5, 400, 4000, 1, 0.08, 0, 'bandpass', 0.4, 0.7); tone(900, 180, 0.9, 'sawtooth', 0.025, 0.35, 0.8, 0.01); tone(905, 185, 0.9, 'sine', 0.04, 0.35, 0.8, 0.01);
         noise(0.12, 2500, 900, 1, 0.12, 0.38, 'bandpass', 0.002, 0.5); break;
+      case 'groan': {                                   // a zombie moan: buzzing vocal cords through a mouth-shaped filter
+        const t0 = actx.currentTime, o = actx.createOscillator(), f = actx.createBiquadFilter(), g = actx.createGain();
+        const vib = actx.createOscillator(), vg = actx.createGain(), base = 85 + Math.random() * 30, dur = 1.1 + Math.random() * 0.6;
+        vib.frequency.value = 6 + Math.random() * 3; vg.gain.value = 6; vib.connect(vg).connect(o.frequency);
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(base * 1.15, t0); o.frequency.linearRampToValueAtTime(base * 0.8, t0 + dur);
+        f.type = 'bandpass'; f.Q.value = 4; f.frequency.setValueAtTime(420, t0); f.frequency.linearRampToValueAtTime(820, t0 + dur * 0.4); f.frequency.linearRampToValueAtTime(380, t0 + dur);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(0.07, t0 + 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(f).connect(g); out(g, 0.45, pan); o.start(t0); vib.start(t0); o.stop(t0 + dur + 0.05); vib.stop(t0 + dur + 0.05);
+        noise(dur * 0.9, 900, 500, 2, 0.02, 0.05, 'bandpass', 0.2, 0.45, pan); break; }
+      case 'scrape': noise(0.12, 2600, 1500, 2, 0.02, 0, 'bandpass', 0.01, 0.2, pan); tone(110, 70, 0.08, 'sine', 0.03, 0, 0.2, 0.002, pan); break;
+      case 'flyshriek': noise(0.6, 2800, 1700, 4, 0.05, 0, 'bandpass', 0.03, 0.6, pan); tone(720, 980, 0.45, 'sawtooth', 0.016, 0, 0.6, 0.02, pan); tone(1450, 1900, 0.4, 'sine', 0.012, 0.02, 0.6, 0.02, pan); break;
+      case 'bones': clack(9, 0.05); noise(0.18, 2200, 700, 0.8, 0.12, 0, 'bandpass', 0.002, 0.3); tone(120, 50, 0.2, 'sine', 0.14, 0, 0.2, 0.002); break;
       case 'wraith': noise(1.2, 1600, 700, 5, 0.04, 0, 'bandpass', 0.4, 0.7, rndPan()); tone(392, 349, 1, 'sine', 0.018, 0.1, 0.8, 0.3); break;
       case 'relic': [130.8, 164.8, 196, 246.9, 329.6].forEach((f, i) => pad(f, 3, 0.03, i * 0.06)); [1046, 1318, 1568, 2093].forEach((f, i) => tone(f, f, 1.6, 'sine', 0.03, 0.3 + i * 0.12, 0.8, 0.004)); break;
       // --- sparse horror ambience ---
@@ -857,7 +870,7 @@ function buildLevel(i) {
   const cols = maxX;
   const lv = { def, cols, W: cols * T, cam: 0, t: 0, reverse: false, chomp: null,
     grid: new Array(cols * ROWS).fill(null), dyn: [], groups: {}, groupTiles: {}, spikeCols: Array.from({ length: cols }, () => []),
-    spikes: [], rising: [], balls: [], labels: b.labels, wraiths: b.wraiths.map(w => ({ ...w, by: w.y, alive: true, awake: false, ph: Math.random() * 6 })), fakes: b.fakes, flags: b.flags, door: b.door, start: b.start, meta: b.meta,
+    spikes: [], rising: [], balls: [], labels: b.labels, wraiths: b.wraiths.map(w => ({ ...w, by: w.y, alive: true, awake: false, ph: Math.random() * 6, vy: 0, walk: Math.random() * 6, face: -1 })), fakes: b.fakes, flags: b.flags, door: b.door, start: b.start, meta: b.meta,
     traps: b.traps.map(t => ({ ...t, fired: false })) };
   for (const [k, c] of cells) {
     const x = Math.floor(k / ROWS), y = k % ROWS;
@@ -1252,23 +1265,55 @@ function hitAlong(g, radius) {
     G.gone = 4.5; G.a = 0; sfx('banish'); sfx('hit'); burst(G.x, G.y, '#dfeee8', 30, 320); shake = 8; hitStop = 0.08;
   }
 }
-function killWraith(w) { w.alive = false; sfx('banish'); burst(w.x, w.y, '#cfe0ff', 22, 260); burst(w.x, w.y, C.glow, 10, 180); shake = Math.max(shake, 4); }
+function killWraith(w) {
+  w.alive = false; sfx('bones'); sfx('hit');
+  for (let i = 0; i < 18; i++) particles.push({ x: w.x + (Math.random() - .5) * 10, y: w.y + (Math.random() - .5) * 20, vx: (Math.random() - .5) * 420, vy: -120 - Math.random() * 300,
+    life: 0.7 + Math.random() * 0.5, s: 3 + Math.random() * 4, color: i % 5 ? '#cfc6a3' : '#6b1018' });
+  burst(w.x, w.y - 10, '#ff3b3b', 5, 120); shake = Math.max(shake, 4);
+}
+function solidAt(x, y) {
+  const c = Math.floor(x / T), r = Math.floor(y / T);
+  if (c < 0 || c >= L.cols || r < 0 || r >= ROWS) return false;
+  const t = L.grid[c * ROWS + r]; if (t && t.solid) return true;
+  return L.dyn.some(d => d.solid && x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h);
+}
+let groanT = 1.5;
 function updateWraiths(dt) {
   const cx = P.x + P.w / 2, cy = P.y + P.h / 2;
+  let nearest = null;
   for (const w of L.wraiths) {
     if (!w.alive) continue;
     w.ph += dt * 3;
-    const dx = cx - w.x, dy = cy - w.y, d = Math.hypot(dx, dy) || 1;
-    if (!w.awake && Math.abs(dx) < 330) { w.awake = true; sfx('wraith'); }
-    if (w.awake && state === 'play') { w.x += dx / d * 85 * dt; w.y += (dy / d * 70 + Math.sin(w.ph) * 18) * dt; }
-    else w.y = w.by + Math.sin(w.ph) * 5;
-    if (state !== 'play') continue;
-    // stomp: land on its head from above
-    if (P.vy > 0 && P.y + P.h > w.y - 16 && P.y + P.h < w.y + 2 && Math.abs(cx - w.x) < 17) {
-      killWraith(w); P.vy = -470; P.airJumps = 1; continue;
+    const dx = cx - w.x, dy = cy - w.y, d = Math.hypot(dx, dy) || 1, pan = Math.max(-1, Math.min(1, -dx / 420));
+    if (w.kind === 'walker') {
+      if (!w.awake && Math.abs(dx) < 340 && Math.abs(dy) < 160) { w.awake = true; sfx('groan', pan); }
+      if (w.awake && state === 'play') {
+        // the shamble: surges forward, almost stops, surges again
+        const dir = Math.sign(dx) || 1, lurch = 0.35 + 0.65 * Math.max(0, Math.sin(w.walk * 2)), sp = 62 * lurch, nx = w.x + dir * sp * dt;
+        w.face = dir;
+        if (!solidAt(nx + dir * 9, w.y - 10) && !solidAt(nx + dir * 9, w.y + 8)) w.x = nx;
+        const before = Math.floor(w.walk / Math.PI); w.walk += (12 + sp) * dt * 0.09;
+        if (Math.floor(w.walk / Math.PI) !== before && Math.abs(dx) < 300) sfx('scrape', pan);
+        if (!nearest || Math.abs(dx) < Math.abs(nearest.dx)) nearest = { dx, pan };
+      }
+      w.vy = Math.min(w.vy + GRAV * dt, 900);                  // they walk on the ground and can fall into pits
+      let ny = w.y + w.vy * dt;
+      if (w.vy >= 0 && solidAt(w.x, ny + 15)) { ny = Math.floor((ny + 15) / T) * T - 15; w.vy = 0; }
+      w.y = ny; if (w.y > H + 60) { w.alive = false; continue; }
+      if (state !== 'play') continue;
+      if (P.vy > 0 && P.y + P.h > w.y - 20 && P.y + P.h < w.y - 4 && Math.abs(dx) < 17) { killWraith(w); P.vy = -470; P.airJumps = 1; continue; }
+      if (Math.abs(dx) < 15 && Math.abs(dy) < 22) return die();
+    } else {
+      if (!w.awake && Math.abs(dx) < 340) { w.awake = true; sfx('flyshriek', pan); }
+      if (w.awake && state === 'play') { w.face = Math.sign(dx) || 1; w.x += dx / d * 82 * dt; w.y += (dy / d * 66 + Math.sin(w.ph) * 20) * dt; }
+      else w.y = w.by + Math.sin(w.ph) * 5;
+      if (state !== 'play') continue;
+      if (P.vy > 0 && P.y + P.h > w.y - 16 && P.y + P.h < w.y + 2 && Math.abs(dx) < 17) { killWraith(w); P.vy = -470; P.airJumps = 1; continue; }
+      if (d < 15) return die();
     }
-    if (d < 15) return die();
   }
+  groanT -= dt;                                            // the nearest zombie keeps moaning, from its side of the screen
+  if (nearest && groanT <= 0 && Math.abs(nearest.dx) < 480) { groanT = 2.2 + Math.random() * 2.5; sfx('groan', nearest.pan); }
 }
 function die() {
   if (state !== 'play') return;
@@ -1615,20 +1660,110 @@ function drawBlade() {                                // the Bone Blade, drawn a
   ctx.globalAlpha = P.atkType ? 0.6 : 0.3; ctx.strokeStyle = C.glow; ctx.lineWidth = P.atkType ? 4 : 2.5; ctx.stroke();
   ctx.restore();
 }
+const UND = { bone: '#cfc6a3', shade: '#958d6e', dark: '#15130f', rag: '#2e2622' };
+function bonePath(x1, y1, x2, y2, w) { ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+function drawUndeadSkull(time, v, jawOpen, scale) {   // cracked skull: one burning eye, one empty socket, hanging jaw
+  ctx.save(); ctx.scale(scale, scale);
+  ctx.fillStyle = UND.bone; ctx.beginPath(); ctx.arc(0, 0, 7.5, 0, 7); ctx.fill();
+  ctx.save(); ctx.translate(-3, 4); ctx.rotate(jawOpen); ctx.fillStyle = UND.shade; roundRect(-1, 0, 9, 4.5, 1.5); ctx.fill();
+  ctx.fillStyle = UND.dark; for (let i = 0; i < 4; i++) if (i !== (v % 4)) ctx.fillRect(i * 2.1, 0, 1, 2.4); ctx.restore();
+  ctx.fillStyle = UND.dark;
+  ctx.beginPath(); ctx.ellipse(2.8, -0.5, 2.4, 2.8, 0.2, 0, 7); ctx.fill();               // burning eye socket
+  ctx.beginPath(); ctx.ellipse(-3, -0.8, 2.1, 2.5, -0.2, 0, 7); ctx.fill();               // empty socket
+  ctx.beginPath(); ctx.moveTo(0, 2.6); ctx.lineTo(1.2, 4.2); ctx.lineTo(-1.2, 4.2); ctx.closePath(); ctx.fill();
+  const glow = 0.6 + 0.4 * Math.sin(time * 7 + v);
+  ctx.fillStyle = 'rgba(255,40,40,' + (0.3 * glow) + ')'; ctx.beginPath(); ctx.arc(2.9, -0.4, 3.4, 0, 7); ctx.fill();
+  ctx.fillStyle = '#ff3030'; ctx.beginPath(); ctx.arc(2.9, -0.4, 1.1, 0, 7); ctx.fill();
+  ctx.strokeStyle = UND.dark; ctx.lineWidth = 0.9; ctx.beginPath();                       // cracks
+  ctx.moveTo(-1, -7.4); ctx.lineTo(0.5, -4.5); ctx.lineTo(-1.5, -2.8); if (v >= 2) { ctx.moveTo(5.5, -5); ctx.lineTo(3.5, -3.5); ctx.lineTo(4.5, -2); }
+  ctx.stroke();
+  if (v === 3) { ctx.fillStyle = UND.dark; ctx.beginPath(); ctx.arc(-4.5, -4.5, 1.8, 0, 7); ctx.fill(); }   // a hole in the skull
+  ctx.restore();
+}
+function drawWalker(w, time) {
+  const f = w.face, ph = w.walk, lean = 0.32 + Math.sin(ph * 2) * 0.05, sway = Math.sin(ph) * 0.07;
+  ctx.save(); ctx.translate(w.x, w.y + 15); ctx.scale(f, 1);                             // origin at the feet, facing +x
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, 1, 9, 2, 0, 0, 7); ctx.fill();
+  const hipX = 0, hipY = -12 + Math.abs(Math.sin(ph)) * 1.2;
+  // legs: a good leg that steps, a lame one that drags behind
+  ctx.strokeStyle = UND.shade;
+  const lame = { kx: hipX - 2, ky: hipY + 6, fx: hipX - 6 - Math.sin(ph) * 1.5, fy: -0.5 };
+  bonePath(hipX, hipY, lame.kx, lame.ky, 2.3); bonePath(lame.kx, lame.ky, lame.fx, lame.fy, 2.1);
+  ctx.fillStyle = UND.shade; ctx.beginPath(); ctx.ellipse(lame.fx - 1, -0.5, 2.6, 1.2, 0.25, 0, 7); ctx.fill();
+  ctx.strokeStyle = UND.bone;
+  const a = Math.sin(ph) * 0.6, kx = hipX + Math.sin(a) * 6 + 1.5, ky = hipY + 6, fx = hipX + Math.sin(a) * 9, fy = -Math.max(0, Math.cos(ph)) * 2.5;
+  bonePath(hipX, hipY, kx, ky, 2.4); bonePath(kx, ky, fx, fy, 2.2);
+  ctx.fillStyle = UND.bone; ctx.beginPath(); ctx.ellipse(fx + 1.5, fy - 0.4, 3, 1.4, 0, 0, 7); ctx.fill();
+  // hunched torso, leaning toward you
+  ctx.translate(hipX, hipY); ctx.rotate(lean + sway);
+  ctx.fillStyle = UND.bone; roundRect(-4.5, -1.5, 9, 3.5, 1.5); ctx.fill();
+  ctx.strokeStyle = UND.bone; bonePath(0, 0, 0, -15, 2.2);
+  ctx.lineWidth = 1.7;
+  for (let i = 0; i < 4; i++) {
+    const y = -5 - i * 2.6, wd = 5 - Math.abs(i - 1.5) * 0.5;
+    if (w.v === 2 && i === 1) { ctx.beginPath(); ctx.moveTo(-wd, y + 1); ctx.quadraticCurveTo(-1, y - 2, 0, y - 1.5); ctx.stroke(); continue; }   // a broken rib
+    ctx.beginPath(); ctx.moveTo(-wd, y + 1.2); ctx.quadraticCurveTo(0, y - 2.4, wd, y + 1.2); ctx.stroke();
+  }
+  // rags hanging off the shoulders
+  ctx.fillStyle = UND.rag; ctx.beginPath(); ctx.moveTo(-6, -15); ctx.lineTo(5, -15); ctx.lineTo(4, -9);
+  ctx.lineTo(2.5, -6 + Math.sin(time * 4) * 1); ctx.lineTo(1, -10); ctx.lineTo(-1, -4 + Math.sin(time * 4 + 1)); ctx.lineTo(-3, -9); ctx.lineTo(-6, -6); ctx.closePath(); ctx.fill();
+  // arms stretched out in front, reaching for you (some have one snapped off)
+  const reach = (side, len) => {
+    const sy = -13.5, sx = side * 1.5, bob = Math.sin(time * 3 + side) * 0.12;
+    const dx = Math.cos(-lean + bob), dy = Math.sin(-lean + bob);                          // pointing forward, against the lean
+    ctx.strokeStyle = side > 0 ? UND.bone : UND.shade;
+    const elx = sx + dx * 6, ely = sy + dy * 6 + 1, wx = elx + dx * (len - 6), wy = ely + dy * (len - 6) + 1.5;
+    bonePath(sx, sy, elx, ely, 2); if (len > 7) { bonePath(elx, ely, wx, wy, 1.8);
+      ctx.lineWidth = 0.9; for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.moveTo(wx, wy); ctx.lineTo(wx + dx * 3.2, wy + dy * 3.2 + k * 1.3 + 0.8); ctx.stroke(); } }
+    else { ctx.fillStyle = UND.dark; ctx.beginPath(); ctx.arc(elx, ely, 1, 0, 7); ctx.fill(); }   // snapped stump
+  };
+  reach(-1, w.v === 1 || w.v === 3 ? 6 : 13);
+  reach(1, 13);
+  // skull, lolling with each lurch
+  ctx.translate(1.5, -21); ctx.rotate(-lean * 0.6 + Math.sin(ph * 2 + 0.5) * 0.12);
+  drawUndeadSkull(time, w.v, 0.25 + Math.max(0, Math.sin(time * 2.2 + w.v)) * 0.35, 1);
+  ctx.restore();
+}
+function drawFlyer(w, time) {
+  const f = w.face, flap = Math.sin(time * 11 + w.ph);
+  ctx.save(); ctx.translate(w.x, w.y); ctx.scale(f, 1); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.fillStyle = 'rgba(255,40,40,.05)'; ctx.beginPath(); ctx.arc(0, -6, 18, 0, 7); ctx.fill();
+  // bony bat wings: finger bones with torn skin stretched between them
+  for (const sd of [-1, 1]) {
+    const up = flap * 9, sx = sd * 3, sy = -9;
+    const f1 = [sd * 13, -24 + up], f2 = [sd * 23, -15 + up * 0.8], f3 = [sd * 21, -3 + up * 0.4], base = [sd * 5, -1];
+    ctx.fillStyle = 'rgba(80,22,30,.82)'; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(f1[0], f1[1]);
+    ctx.quadraticCurveTo(sd * 15, -15 + up * 0.8, f2[0], f2[1]); ctx.quadraticCurveTo(sd * 16, -7 + up * 0.5, f3[0], f3[1]);
+    ctx.quadraticCurveTo(sd * 11, -4, base[0], base[1]); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(10,6,8,.9)'; ctx.beginPath(); ctx.arc(sd * 15, -12 + up * 0.8, 1.6, 0, 7); ctx.fill();       // a tear in the skin
+    ctx.strokeStyle = UND.bone; ctx.lineWidth = 1.5;
+    for (const fp of [f1, f2, f3]) { ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(fp[0], fp[1]); ctx.stroke(); }
+    ctx.fillStyle = UND.bone; ctx.beginPath(); ctx.arc(f1[0], f1[1], 1.3, 0, 7); ctx.fill();
+  }
+  // spine trailing off into shreds
+  ctx.strokeStyle = UND.shade; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-3 + Math.sin(time * 5) * 2, 9, -6 + Math.sin(time * 4) * 3, 17); ctx.stroke();
+  ctx.fillStyle = 'rgba(46,38,34,.85)';
+  for (let i = 0; i < 3; i++) { const o = i * 3 - 3, wv = Math.sin(time * 6 + i) * 2.5; ctx.beginPath(); ctx.moveTo(o - 2, 2); ctx.lineTo(o + 2, 2); ctx.lineTo(o + wv - 1, 14 + i * 2); ctx.closePath(); ctx.fill(); }
+  // ribcage, half caved in
+  ctx.strokeStyle = UND.bone; ctx.lineWidth = 1.6;
+  for (let i = 0; i < 3; i++) { const y = -1 - i * 2.6, wd = 5 - i * 0.4; ctx.beginPath(); ctx.moveTo(-wd, y + 1.2); ctx.quadraticCurveTo(0, y - 2.2, i === 0 && w.v % 2 ? 1 : wd, y + 1.2); ctx.stroke(); }
+  // clawed arms reaching ahead
+  ctx.strokeStyle = UND.bone;
+  for (const k of [-1, 1]) {
+    const a = -0.25 + Math.sin(time * 4 + k) * 0.18 + k * 0.12, ex = 7 * Math.cos(a), ey = -8 + 7 * Math.sin(a), hx = ex + 7 * Math.cos(a + 0.3), hy = ey + 7 * Math.sin(a + 0.3);
+    bonePath(1, -8, ex, ey, 1.8); bonePath(ex, ey, hx, hy, 1.6);
+    ctx.lineWidth = 0.9; for (let c = -1; c <= 1; c++) { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 3.5, hy + c * 1.6 + 1); ctx.stroke(); }
+  }
+  ctx.translate(2, -16); ctx.rotate(Math.sin(time * 3) * 0.1);
+  drawUndeadSkull(time, w.v, 0.5 + Math.abs(Math.sin(time * 6)) * 0.4, 1.05);
+  ctx.restore();
+}
 function drawWraiths(time) {
   for (const w of L.wraiths) {
     if (!w.alive || w.x < L.cam - 40 || w.x > L.cam + VW + 40) continue;
-    const face = P.x + P.w / 2 > w.x ? 1 : -1, fl = 0.75 + 0.15 * Math.sin(time * 13 + w.ph);
-    ctx.save(); ctx.translate(w.x, w.y); ctx.scale(face, 1); ctx.globalAlpha = fl;
-    ctx.fillStyle = 'rgba(150,180,255,.16)'; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 7); ctx.fill();
-    const g = ctx.createLinearGradient(0, -12, 0, 20); g.addColorStop(0, 'rgba(210,225,255,.95)'); g.addColorStop(1, 'rgba(170,190,240,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-10, 4); ctx.bezierCurveTo(-11, -9, -6, -14, 0, -14); ctx.bezierCurveTo(6, -14, 11, -9, 10, 4);
-    for (let i = 0; i < 4; i++) { const sx = 10 - (i + 1) * 5, wv = Math.sin(time * 9 + i + w.ph) * 2.5; ctx.quadraticCurveTo(sx + 2 + wv, 12, sx - 3 + wv, 18); ctx.quadraticCurveTo(sx, 8, sx - 1, 5); }
-    ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#020203'; ctx.beginPath(); ctx.ellipse(-3, -6, 2, 3, -0.2, 0, 7); ctx.ellipse(4, -6, 2, 3, 0.2, 0, 7); ctx.fill();
-    ctx.fillStyle = w.awake ? '#ff3b3b' : '#a32a2a'; ctx.beginPath(); ctx.arc(-2.6, -5.6, 0.9, 0, 7); ctx.arc(4.4, -5.6, 0.9, 0, 7); ctx.fill();
-    ctx.fillStyle = '#020203'; ctx.beginPath(); ctx.ellipse(1, 1, 2, w.awake ? 3.5 + Math.sin(time * 8) : 1.5, 0, 0, 7); ctx.fill();
-    ctx.restore();
+    if (w.kind === 'walker') drawWalker(w, time); else drawFlyer(w, time);
   }
 }
 function drawDevourOverlay(time) {
@@ -1736,7 +1871,7 @@ const RELICS = [
     text: 'Ghostly wings let you jump a second time in mid-air. Some gaps and walls now need them.',
     how: { desk: 'Press Z (or A, Space) again while you are in the air.', mob: 'Tap ▲ again while you are in the air.' } },
   { id: 'blade', name: 'Bone Blade', level: 4, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M38 4l6 6-19 19 3 3-3 3-3-3-5 5 2 2-3 3-7-7 3-3 2 2 5-5-3-3 3-3 3 3z" fill="currentColor"/><circle cx="8" cy="40" r="3.5" fill="currentColor"/></svg>',
-    text: 'Wraiths now haunt the graveyard. Slash them to banish them, or stomp on their heads. The blade even scares the big ghost away for a few seconds.',
+    text: 'The dead are rising: rotting skeletons shamble toward you and broken ones fly. Slash them apart or stomp on their skulls. The blade even scares the big ghost away for a few seconds.',
     how: { desk: 'X or S to slash (press again for a combo). C or D for the spin attack, or a plunge in the air.', mob: 'Tap the sword button next to ▲ to slash.' } },
 ];
 function syncRelics() { document.body.classList.toggle('has-blade', hasBlade()); }
