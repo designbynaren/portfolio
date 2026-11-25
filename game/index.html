@@ -1195,9 +1195,9 @@ function updatePlayer(dt) {
 const MOVES = {                                     // duration, cooldown after, sound
   slash:    { dur: 0.22, cd: 0.05, snd: 'slash' },
   backhand: { dur: 0.22, cd: 0.05, snd: 'slash2' },
-  spin:     { dur: 0.42, cd: 0.25, snd: 'spin' },
+  spin:     { dur: 0.42, cd: 0, snd: 'spin' },
   flip:     { dur: 0.42, cd: 0.05, snd: 'flip' },
-  plunge:   { dur: 9,    cd: 0.25, snd: 'plunge' },
+  plunge:   { dur: 9,    cd: 0.15, snd: 'plunge' },
 };
 const ease = k => 1 - Math.pow(1 - k, 3);             // fast start, soft finish
 function nextAttack() {
@@ -1220,7 +1220,8 @@ function updateAttack(dt) {
   const g = bladeGeom(); P.trail.unshift(g); if (P.trail.length > 9) P.trail.pop();
   // hits happen during the fast part of each swing
   if (P.atkType === 'plunge') { P.vy = Math.max(P.vy, 820); hitAlong(g, 0); if (P.ground) plungeImpact(); return; }
-  if (k > 0.05 && k < 0.8) hitAlong(g, P.atkType === 'spin' || P.atkType === 'flip' ? 46 : 0);
+  const round = P.atkType === 'spin' || P.atkType === 'flip';
+  if (k > 0.05 && k < (round ? 0.97 : 0.8)) hitAlong(g, round ? 46 : 0);
   if (k >= 1) endAttack();
 }
 function endAttack() {
