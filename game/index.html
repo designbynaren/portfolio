@@ -226,7 +226,7 @@
           <button id="btnHelp" class="mini" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 16h-2v-2h2v2zm2.1-7.8-.9.9c-.7.7-1.2 1.3-1.2 2.9h-2v-.5c0-1.1.5-2.1 1.2-2.8l1.2-1.3a1.9 1.9 0 0 0-1.4-3.3 2 2 0 0 0-2 2H8a4 4 0 0 1 8 0c0 .9-.4 1.7-.9 2.1z" fill="currentColor"/></svg><span>Controls</span></button>
         </div>
         <div id="helpPanel" class="hidden">
-          <span class="desk">← → or A D to move · Space, ↑ or W to jump (tap for a small hop) · X, J or K to slash: press again for a combo, in the air for a flip and a plunge (Bone Blade) · R restart · Esc pause · M mute</span>
+          <span class="desk"><b>← →</b> move · <b>Z</b>/<b>A</b> (or Space) jump, tap for a small hop · <b>X</b>/<b>S</b> sword, press again for a combo, in the air for a flip slash · <b>C</b>/<b>D</b> special: spin attack, or plunge in the air · R restart · Esc pause · M mute</span>
           <span class="mob">Hold ◀ ▶ to move (slide your thumb between them) · ▲ to jump, tap it quickly for a small hop · sword button to slash</span>
         </div>
       </nav>
@@ -657,21 +657,24 @@ function ambientTick(dt) {
 function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
 
 /* ---------- input ---------- */
-const keys = { left:false, right:false, jump:false, attack:false };
-let jumpPressed = false, attackPressed = false;
-const KEYMAP = { ArrowLeft:'left', KeyA:'left', ArrowRight:'right', KeyD:'right', ArrowUp:'jump', KeyW:'jump', Space:'jump', KeyX:'attack', KeyJ:'attack', KeyK:'attack' };
+const keys = { left:false, right:false, jump:false, attack:false, special:false };
+let jumpPressed = false, attackPressed = false, specialPressed = false;
+// Arrows move. Left hand on Z X C (or A S D, same thing): jump, sword, special.
+const KEYMAP = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'jump', Space:'jump', KeyZ:'jump', KeyA:'jump',
+  KeyX:'attack', KeyS:'attack', KeyC:'special', KeyD:'special' };
 addEventListener('keydown', e => {
   const k = KEYMAP[e.code];
   if (state === 'relic' && (e.code === 'Enter' || e.code === 'Space')) { e.preventDefault(); $('btnRelicOk').click(); return; }
   if (state === 'complete') {
-    if (e.code === 'Enter' || e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); goNext(); }
+    if (e.code === 'Enter' || e.code === 'ArrowRight') { e.preventDefault(); goNext(); }
     else if (e.code === 'KeyR') replay();
-    else if (e.code === 'Backspace' || e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); goPrev(); }
+    else if (e.code === 'Backspace' || e.code === 'ArrowLeft') { e.preventDefault(); goPrev(); }
     return;
   }
   if (k) { if (isInGame()) e.preventDefault();
            if (k === 'jump' && !keys.jump && !e.repeat) jumpPressed = true;
-           if (k === 'attack' && !keys.attack && !e.repeat) attackPressed = true; keys[k] = true; return; }
+           if (k === 'attack' && !keys.attack && !e.repeat) attackPressed = true;
+           if (k === 'special' && !keys.special && !e.repeat) specialPressed = true; keys[k] = true; return; }
   if (e.code === 'KeyR' && state === 'play') respawn(true);
   else if (e.code === 'Escape' || e.code === 'KeyP') { if (isInGame()) pause(); else if (state === 'levels' || state === 'relics') showMenu(); else if (state === 'menu' && paused) resume(); }
   else if (e.code === 'KeyM') toggleMute();
@@ -889,8 +892,8 @@ function loadLevel(i, keepCp) {
     L.wraiths.forEach(w => { if (w.x < f.x + 60) w.alive = false; });
   }
   P = { x: sx, y: sy, w: PW, h: PH, vx: 0, vy: 0, ground: false, coyote: 0, buffer: 0, face: 1, sx: 1, sy: 1, alpha: 1,
-        walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0, airJumps: 1, wingT: 0, atk: 0, atkCd: 0, atkType: null, atkDur: 1, combo: 0, comboT: 9, rot: 0, flipUsed: false, trail: [] };
-  jumpPressed = attackPressed = false;
+        walk: 0, walkAmt: 0, dustT: 0, jumped: false, spawn: 0, queued: 0, airJumps: 1, wingT: 0, atk: 0, atkCd: 0, atkType: null, atkDur: 1, combo: 0, comboT: 9, rot: 0, flipUsed: false, trail: [] };
+  jumpPressed = attackPressed = specialPressed = false;
   jumpPressed = false; particles = []; shake = 0; L.cam = camTarget(); L.camY = camTargetY();
   L.ghost = L.def.ghost ? { x: P.x - 460, y: P.y - 80, speed: L.def.ghost, at: 1.4, a: 0, beat: 0, woke: false, talk: 2, armed: true, trail: [], scare: 0 } : null;
 }
@@ -1127,6 +1130,12 @@ function updatePlayer(dt) {
     }
   }
   if (!P.atkType && P.queued && P.atkCd <= 0) { P.queued--; nextAttack(); }
+  if (specialPressed) {                                  // C / D: jump straight to the big move
+    specialPressed = false;
+    if (hasBlade() && P.atkType !== 'plunge' && P.atkType !== 'spin') {
+      if (!P.ground && P.coyote <= 0) startAttack('plunge'); else if (!P.atkType || P.atkType !== 'spin') { P.combo = 3; P.queued = 0; startAttack('spin'); }
+    }
+  }
   if (P.atkType) updateAttack(dt);
   let g = GRAV; if (P.vy < 0 && !keys.jump) g *= 2.4;
   P.vy = Math.min(P.vy + g * dt, 950);
@@ -1725,10 +1734,10 @@ const ICON = {
 const RELICS = [
   { id: 'wings', name: 'Wraith Wings', level: 2, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 30c-4-8-12-14-21-14 3 3 4 6 4 9-2 0-3 1-4 2 4 0 8 2 10 5-2 0-3 1-4 3 6-1 11 0 15 3zm0 0c4-8 12-14 21-14-3 3-4 6-4 9 2 0 3 1 4 2-4 0-8 2-10 5 2 0 3 1 4 3-6-1-11 0-15 3z" fill="currentColor"/></svg>',
     text: 'Ghostly wings let you jump a second time in mid-air. Some gaps and walls now need them.',
-    how: { desk: 'Press jump again while you are in the air.', mob: 'Tap ▲ again while you are in the air.' } },
+    how: { desk: 'Press Z (or A, Space) again while you are in the air.', mob: 'Tap ▲ again while you are in the air.' } },
   { id: 'blade', name: 'Bone Blade', level: 4, icon: '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M38 4l6 6-19 19 3 3-3 3-3-3-5 5 2 2-3 3-7-7 3-3 2 2 5-5-3-3 3-3 3 3z" fill="currentColor"/><circle cx="8" cy="40" r="3.5" fill="currentColor"/></svg>',
     text: 'Wraiths now haunt the graveyard. Slash them to banish them, or stomp on their heads. The blade even scares the big ghost away for a few seconds.',
-    how: { desk: 'Press X, J or K to slash.', mob: 'Tap the sword button next to ▲ to slash.' } },
+    how: { desk: 'X or S to slash (press again for a combo). C or D for the spin attack, or a plunge in the air.', mob: 'Tap the sword button next to ▲ to slash.' } },
 ];
 function syncRelics() { document.body.classList.toggle('has-blade', hasBlade()); }
 let relicQueue = [];
